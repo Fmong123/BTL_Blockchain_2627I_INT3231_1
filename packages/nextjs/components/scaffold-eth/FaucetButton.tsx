@@ -59,9 +59,15 @@ export const FaucetButton = () => {
           ? "ml-1"
           : "ml-1 tooltip tooltip-bottom tooltip-primary tooltip-open font-bold before:left-auto before:right-0 before:transform-none before:translate-none before:content-[attr(data-tip)]"
       }
-      data-tip="Grab funds from faucet"
+      data-tip="Nhận ETH thử nghiệm"
     >
-      <button className="btn btn-secondary btn-sm px-2" onClick={sendETH} disabled={loading}>
+      <button
+        className="btn btn-secondary btn-sm px-2"
+        onClick={sendETH}
+        disabled={loading}
+        aria-label="Nhận 1 ETH thử nghiệm"
+        title="Nhận 1 ETH thử nghiệm"
+      >
         {!loading ? (
           <BanknotesIcon className="h-4 w-4" />
         ) : (
