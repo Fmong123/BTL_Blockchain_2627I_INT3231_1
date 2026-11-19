@@ -6,31 +6,39 @@ File được tính SHA-256 trong trình duyệt. Blockchain lưu hash, tên, m�
 
 ## Chạy local
 
-Yêu cầu Node.js **>= 22.10.0** (khuyến nghị Node 24), Yarn **4.13.0**, Git và trình duyệt hiện đại. Trong PowerShell:
+Yêu cầu Node.js **>= 22.10.0** (khuyến nghị Node 24), Yarn **4.13.0**, Git và trình duyệt hiện đại.
 
-```powershell
-Set-Location 'D:\Blockchain UET\blockchain'
+Mở terminal tại thư mục bất kỳ mà bạn muốn lưu dự án, rồi chạy:
+
+```sh
+git clone https://github.com/Fmong123/BTL_Blockchain_2627I_INT3231_1.git
+cd BTL_Blockchain_2627I_INT3231_1
+```
+
+Nếu đã clone hoặc đổi tên thư mục, mở terminal tại thư mục repo có file `package.json` và `yarn.lock`. Nếu máy chưa nhận lệnh `corepack`, xem [hướng dẫn cài Corepack](https://github.com/nodejs/corepack#manual-installs).
+
+```sh
 corepack enable
 yarn install --immutable
 ```
 
-Giữ các terminal sau mở, đều tại thư mục dự án:
+Chạy từng lệnh sau từ thư mục gốc của repo. Giữ terminal 1 và 3 mở khi dùng ứng dụng.
 
 **Terminal 1 — blockchain:**
 
-```powershell
+```sh
 yarn chain
 ```
 
 **Terminal 2 — triển khai contract, chạy sau khi blockchain sẵn sàng:**
 
-```powershell
+```sh
 yarn deploy
 ```
 
 **Terminal 3 — website:**
 
-```powershell
+```sh
 yarn start
 ```
 
@@ -60,7 +68,7 @@ Mã giao dịch sau đăng ký có liên kết tới Block Explorer local. **Cô
 
 ## Kiểm tra chất lượng
 
-```powershell
+```sh
 yarn test
 yarn hardhat:check-types
 yarn next:check-types
