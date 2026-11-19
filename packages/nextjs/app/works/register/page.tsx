@@ -8,6 +8,7 @@ import { zeroAddress } from "viem";
 import { hardhat } from "viem/chains";
 import { useAccount } from "wagmi";
 import { WorkFilePicker } from "~~/components/works/WorkFilePicker";
+import { WorkRecord } from "~~/components/works/WorkRecord";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { getParsedError, notification } from "~~/utils/scaffold-eth";
 import { SelectedWorkFile, getWorkMetadataError } from "~~/utils/workFiles";
@@ -89,8 +90,8 @@ export default function RegisterWorkPage() {
         setError("Chưa gửi được giao dịch. Hãy kiểm tra thông báo của ví.");
         return;
       }
-      setTxHash(hash);
       const updated = await refetch();
+      setTxHash(hash);
       if (updated.error) notification.warning("Giao dịch đã thành công. Hãy tải lại trang để đọc bản ghi.");
     } catch (err) {
       setError(getParsedError(err));
@@ -174,7 +175,7 @@ export default function RegisterWorkPage() {
                 <span>Ví đăng ký:</span>
                 <Address address={work?.[0]} chain={hardhat} />
               </div>
-              <Link href="/works/verify" className="link mt-2 inline-block">
+              <Link href={`/works/verify?hash=${selection.fileHash}`} className="link mt-2 inline-block">
                 Đến trang xác minh
               </Link>
             </div>
@@ -215,16 +216,21 @@ export default function RegisterWorkPage() {
               {error}
             </p>
           )}
-          {txHash && (
+          {txHash && selection && (
             <div role="status" className="alert alert-success block space-y-3">
               <p className="m-0 font-semibold">Đăng ký tác phẩm thành công!</p>
               <p className="m-0 text-sm">Mã giao dịch:</p>
               <Link href={`/blockexplorer/transaction/${txHash}`} className="link block break-all font-mono text-xs">
                 {txHash}
               </Link>
-              <Link href="/works/verify" className="btn btn-sm">
-                Xác minh lại tác phẩm
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <Link href={`/works/verify?hash=${selection.fileHash}`} className="btn btn-sm">
+                  Xác minh lại tác phẩm
+                </Link>
+                <Link href="/works" className="btn btn-sm">
+                  Xem danh sách tác phẩm
+                </Link>
+              </div>
             </div>
           )}
           <p className="m-0 text-xs text-base-content/60">
@@ -233,6 +239,11 @@ export default function RegisterWorkPage() {
           </p>
         </div>
       </form>
+      {txHash && selection && (
+        <div className="mt-6">
+          <WorkRecord fileHash={selection.fileHash} />
+        </div>
+      )}
     </div>
   );
 }

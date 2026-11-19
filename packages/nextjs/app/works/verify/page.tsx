@@ -1,18 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import type { SubmitEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import { WorkFilePicker } from "~~/components/works/WorkFilePicker";
 import { WorkRecord } from "~~/components/works/WorkRecord";
 import { SelectedWorkFile, parseFileHash } from "~~/utils/workFiles";
 
 export default function VerifyWorkPage() {
-  const [mode, setMode] = useState<"file" | "hash">("file");
+  return (
+    <Suspense
+      fallback={
+        <p role="status" className="p-6">
+          Đang tải trang xác minh…
+        </p>
+      }
+    >
+      <VerifyWorkFromUrl />
+    </Suspense>
+  );
+}
+
+function VerifyWorkFromUrl() {
+  const initialHash = useSearchParams().get("hash") ?? "";
+  return <VerifyWorkForm key={initialHash} initialHash={initialHash} />;
+}
+
+function readInitialLookup(hash: string) {
+  if (!hash) return {};
+  try {
+    return { fileHash: parseFileHash(hash) };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Hash không hợp lệ." };
+  }
+}
+
+function VerifyWorkForm({ initialHash }: { initialHash: string }) {
+  const [initialLookup] = useState(() => readInitialLookup(initialHash));
+  const [mode, setMode] = useState<"file" | "hash">(initialHash ? "hash" : "file");
   const [selection, setSelection] = useState<SelectedWorkFile>();
-  const [hashInput, setHashInput] = useState("");
-  const [lookupHash, setLookupHash] = useState<`0x${string}`>();
+  const [hashInput, setHashInput] = useState(initialHash);
+  const [lookupHash, setLookupHash] = useState(initialLookup.fileHash);
   const [isHashing, setIsHashing] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialLookup.error ?? "");
 
   function changeMode(nextMode: "file" | "hash") {
     if (nextMode === mode) return;

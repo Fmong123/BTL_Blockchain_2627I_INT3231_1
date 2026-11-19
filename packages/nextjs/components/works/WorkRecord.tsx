@@ -3,6 +3,7 @@
 import { Address } from "@scaffold-ui/components";
 import { zeroAddress } from "viem";
 import { hardhat } from "viem/chains";
+import { WorkHash } from "~~/components/works/WorkHash";
 import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { WORK_TYPE_LABELS } from "~~/utils/workFiles";
 
@@ -63,7 +64,9 @@ export function WorkRecord({ fileHash }: { fileHash: `0x${string}` }) {
           </div>
           <div>
             <dt className="mb-1 font-semibold">Hash SHA-256</dt>
-            <dd className="m-0 break-all font-mono text-xs">{fileHash}</dd>
+            <dd className="m-0">
+              <WorkHash fileHash={fileHash} />
+            </dd>
           </div>
         </dl>
         <p className="m-0 text-xs text-base-content/60">

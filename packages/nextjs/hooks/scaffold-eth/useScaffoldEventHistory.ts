@@ -124,6 +124,8 @@ export const useScaffoldEventHistory = <
     ((deployedContractData.abi as Abi).find(part => part.type === "event" && part.name === eventName) as AbiEvent);
 
   const isContractAddressAndClientReady = Boolean(deployedContractData?.address) && Boolean(publicClient);
+  // A manual refresh with no upper bound must read up to "latest", even if the cached head is stale.
+  const readThroughLatest = !watch && toBlock === undefined;
 
   const fromBlockValue =
     fromBlock !== undefined
@@ -144,6 +146,7 @@ export const useScaffoldEventHistory = <
         fromBlock: fromBlockValue?.toString(),
         toBlock: toBlock?.toString(),
         chainId: selectedNetwork.id,
+        readThroughLatest,
         filters: JSON.stringify(filters, replacer),
         blocksBatchSize: blocksBatchSize.toString(),
       },
@@ -154,8 +157,8 @@ export const useScaffoldEventHistory = <
       // Calculate the toBlock for this batch
       let batchToBlock = toBlock;
       const batchEndBlock = pageParam + BigInt(blocksBatchSize) - 1n;
-      const maxBlock = toBlock || (blockNumber ? BigInt(blockNumber) : undefined);
-      if (maxBlock) {
+      const maxBlock = readThroughLatest ? undefined : (toBlock ?? blockNumber);
+      if (maxBlock !== undefined) {
         batchToBlock = batchEndBlock < maxBlock ? batchEndBlock : maxBlock;
       }
 
@@ -178,7 +181,7 @@ export const useScaffoldEventHistory = <
     enabled: enabled && isContractAddressAndClientReady && !isPollingActive, // Disable when polling starts
     initialPageParam: fromBlockValue,
     getNextPageParam: (lastPage, allPages, lastPageParam) => {
-      if (!blockNumber || fromBlockValue >= blockNumber) return undefined;
+      if (readThroughLatest || !blockNumber || fromBlockValue >= blockNumber) return undefined;
 
       const nextBlock = lastPageParam + BigInt(blocksBatchSize);
 

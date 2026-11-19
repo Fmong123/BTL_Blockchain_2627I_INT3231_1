@@ -24,6 +24,10 @@ export const menuLinks: HeaderMenuLink[] = [
     href: "/works/register",
   },
   {
+    label: "Tác phẩm",
+    href: "/works",
+  },
+  {
     label: "Xác minh",
     href: "/works/verify",
   },

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import Image from "next/image";
+import { WorkHash } from "~~/components/works/WorkHash";
 import { hashFile } from "~~/utils/hashFile";
 import {
   SelectedWorkFile,
@@ -141,7 +142,7 @@ export function WorkFilePicker({ value, disabled, onChange, onBusyChange }: Work
           )}
           <div>
             <span className="text-xs font-semibold uppercase tracking-wide text-base-content/60">SHA-256</span>
-            <code className="mt-1 block break-all text-xs leading-relaxed">{value.fileHash}</code>
+            <WorkHash key={value.fileHash} fileHash={value.fileHash} />
           </div>
         </div>
       )}
