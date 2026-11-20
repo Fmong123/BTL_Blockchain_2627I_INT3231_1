@@ -4,7 +4,6 @@ import { useAccount } from "wagmi";
 import { LicenseCard } from "~~/components/licenses/LicenseCard";
 import { useLicenseHistory } from "~~/hooks/licenses/useLicenseHistory";
 import { useRegistryClock } from "~~/hooks/licenses/useRegistryClock";
-import { LICENSE_TERMS } from "~~/utils/licenses";
 import { getParsedError } from "~~/utils/scaffold-eth";
 
 export function ReceivedLicenses() {
@@ -25,7 +24,6 @@ function ReceivedLicensesForAccount({ address }: { address: string }) {
   return (
     <section className="mt-6 space-y-5" aria-label="Giấy phép đã nhận">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="m-0 text-sm text-base-content/70">Điều khoản v1: {LICENSE_TERMS}</p>
         <button className="btn btn-ghost btn-sm" onClick={refresh}>
           Làm mới
         </button>

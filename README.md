@@ -28,6 +28,15 @@ yarn start
 
 Mở địa chỉ Next.js thông báo, mặc định http://localhost:3000. Mạng local: RPC http://127.0.0.1:8545, chain ID 31337. Có thể dùng Burner Wallet hoặc MetaMask với ví thử nghiệm; dùng faucet để nhận ETH local. Không cần kết nối ví để tra cứu/xác minh.
 
+### Bật hồ sơ, SIWE và điều khoản
+
+1. Tạo cơ sở dữ liệu PostgreSQL bằng UTF-8. Nếu dùng Docker, đặt biến môi trường BQS_POSTGRES_PASSWORD cho phiên terminal rồi chạy docker compose up -d --wait. Compose chỉ mở cổng 5432 trên máy local.
+2. Sao chép packages/nextjs/.env.example thành packages/nextjs/.env.local. Điền DATABASE_URL theo dạng postgresql://postgres:<mật-khẩu-đã-URL-encode>@127.0.0.1:5432/banquyenso. Đặt IRON_SESSION_SECRET bằng khóa ngẫu nhiên tối thiểu 32 ký tự (ví dụ chạy node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))" để sinh khóa).
+3. Đặt SIWE_ORIGIN đúng địa chỉ trình duyệt đang mở, gồm scheme, tên máy và cổng. Mặc định http://localhost:3000. COPYRIGHT_RPC_URL phải trỏ tới chính Hardhat mà frontend đang dùng. Sau khi sửa cấu hình, khởi động lại frontend.
+4. Tại root, chạy yarn db:migrate rồi yarn db:seed nếu cần hồ sơ mẫu. Migration có thể chạy lại. Seed chỉ chạy với database local và giữ các hồ sơ đã có.
+
+Nếu chạy trên PowerShell và Yarn bị chặn, thay yarn bằng yarn.cmd. Có thể dùng một PostgreSQL UTF-8 đã có thay Compose. Hồ sơ, đăng nhập và điều khoản cần Next.js có server runtime. Luồng đăng ký, xác minh và cấp/thu hồi V1 vẫn chạy được khi chưa cấu hình database.
+
 ## Tạo bộ dữ liệu demo
 
 Sau deploy, chạy:
@@ -54,8 +63,8 @@ Seed dừng nếu contract đã có giấy phép để giữ dữ liệu hiện 
 1. **Đăng ký:** kết nối ví đúng mạng, chọn file, nhập tên/mô tả và xác nhận giao dịch. Chỉ báo thành công khi receipt thành công. File trùng bị chặn dù dùng ví khác.
 2. **Tác phẩm:** tìm theo tên/ví/hash, lọc loại hoặc ví của tôi, phân trang 10 bản ghi. Tìm/lọc áp dụng trên toàn tập bản ghi đã đọc.
 3. **Xác minh:** chọn file hoặc nhập hash; không cần ví. Nút Xem bản ghi mở `/works/verify?hash=...`, giữ tương thích đường dẫn bàn giao.
-4. **Cấp phép:** trong chi tiết, ví đăng ký nhập người nhận và hạn theo giờ Việt Nam, mặc định 30 ngày. Điều kiện v1 cố định: phi thương mại, ghi nguồn, không cấp lại/chuyển nhượng.
-5. **Quản lý của tôi:** mở mục Quản lý của tôi để xem tác phẩm đã đăng ký và giấy phép đã nhận. Đổi ví để kiểm tra hai vai trò.
+4. **Cấp phép:** trong chi tiết, ví đăng ký nhập người nhận và hạn theo giờ Việt Nam, mặc định 30 ngày. Đăng nhập SIWE trước khi cấp để lưu bản điều khoản v2. Nếu giao dịch đã thành công nhưng lưu điều khoản lỗi, mở thẻ giấy phép và gắn lại điều khoản. Ví nhận đăng nhập, đọc bản đã lưu rồi ký chấp thuận.
+5. **Quản lý của tôi:** xem tác phẩm, giấy phép đã nhận và vào Hồ sơ của tôi để tạo hồ sơ tác giả hoặc tổ chức. Trong chi tiết tác phẩm, ví đăng ký có thể bổ sung vai trò, căn cứ quyền và liên kết YouTube/Spotify. Các trường công khai được gắn nhãn tự khai.
 6. **Thu hồi:** ví đăng ký xác nhận thu hồi; người nhận thấy trạng thái cập nhật. Sau hết hạn/thu hồi, cấp lại sinh mã mới và giữ lịch sử.
 
 Chỉ ví đăng ký được cấp/thu hồi, admin không làm thay. Mỗi cặp tác phẩm–người nhận chỉ có một giấy phép còn hiệu lực. Không cấp cho ví rỗng hoặc chính mình. Khi pause, đăng ký/cấp mới bị chặn; đọc và thu hồi vẫn hoạt động.
@@ -71,6 +80,8 @@ Chỉ ví đăng ký được cấp/thu hồi, admin không làm thay. Mỗi c�
 | Hook nghiệp vụ | `packages/nextjs/hooks/works`, `packages/nextjs/hooks/licenses` |
 | File/hash và quy tắc thuần | `packages/nextjs/utils` |
 | ABI tự sinh | `packages/nextjs/contracts/deployedContracts.ts` |
+| API hồ sơ, SIWE, điều khoản | packages/nextjs/app/api/copyright và packages/nextjs/services/copyright |
+| Schema, migration và seed | packages/nextjs/db |
 
 `works(hash)` trả `(registrant, registeredAt, title, description, workType)`; ví rỗng là chưa có bản ghi. `Image=0`, `Audio=1`, `Document=2`. Tên 1–256 byte UTF-8, mô tả 0–2048 byte UTF-8.
 
@@ -92,7 +103,7 @@ yarn next:build
 
 Kết quả chạy thực tế và phạm vi kiểm chứng: [docs/VERIFICATION.md](docs/VERIFICATION.md).
 
-Trước khi nộp, chạy kịch bản nhiều ví từ clone mới: đăng ký đủ ba loại → xác minh không ví → A cấp cho B → B xem quyền → C không có quyền thay A → A thu hồi → cấp lại và xem lịch sử. Đo thêm đọc/băm WAV thực tế 20/50/100 MiB trên máy demo; file WAV nhỏ từ seed không thay thế phép đo này.
+Chạy yarn test:copyright trên app, Hardhat và PostgreSQL local dành riêng cho kiểm thử. Lệnh ký bằng ví Hardhat mẫu, cập nhật hồ sơ của các ví này và tạo giao dịch kiểm thử. Xem [bộ bàn giao](docs/HANDOFF_NGYN.md) để chuẩn bị demo 5–7 phút.
 
 ## Xử lý lỗi
 

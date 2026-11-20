@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { SubmitEvent } from "react";
 import { AddressInput } from "@scaffold-ui/components";
 import { isAddress, isAddressEqual, zeroAddress } from "viem";
+import { WalletSession } from "~~/components/copyright/WalletSession";
+import { CURRENT_TERMS } from "~~/utils/licenseTerms";
 import {
   DEFAULT_LICENSE_DAYS,
   LICENSE_TERMS,
@@ -18,6 +20,7 @@ type GrantLicenseFormProps = {
   disabled: boolean;
   busy: boolean;
   pendingLabel: string;
+  attachTerms: boolean;
   grant: (licensee: string, expiresAt: bigint) => Promise<boolean>;
 };
 
@@ -27,6 +30,7 @@ export function GrantLicenseForm({
   disabled,
   busy,
   pendingLabel,
+  attachTerms,
   grant,
 }: GrantLicenseFormProps) {
   const [licensee, setLicensee] = useState("");
@@ -78,9 +82,15 @@ export function GrantLicenseForm({
             />
           </label>
           <div className="rounded-box bg-base-200 p-4 text-sm">
-            <strong>Điều khoản v{LICENSE_TERMS_VERSION} · Miễn phí</strong>
-            <p className="mb-0">{LICENSE_TERMS}</p>
+            <strong>Điều khoản v{attachTerms ? CURRENT_TERMS.version : LICENSE_TERMS_VERSION} · Miễn phí</strong>
+            <p className="mb-0 whitespace-pre-line">{attachTerms ? CURRENT_TERMS.content : LICENSE_TERMS}</p>
           </div>
+          {!attachTerms && (
+            <div className="space-y-2">
+              <p className="text-sm">Đăng nhập để lưu phiên bản điều khoản và cho phép ví nhận ký chấp thuận.</p>
+              <WalletSession />
+            </div>
+          )}
           <button className="btn btn-primary w-full" type="submit" disabled={disabled || busy}>
             {busy ? pendingLabel : "Ký và cấp giấy phép"}
           </button>
