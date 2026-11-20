@@ -1,70 +1,82 @@
-# Bản Quyền Số — demo đăng ký và xác minh tác phẩm
+# Bản Quyền Số — ghi nhận và quản lý quyền sử dụng tác phẩm
 
-Ứng dụng blockchain local cho nhóm phát triển tiếp. Demo hiện có **đăng ký, danh sách tác phẩm và xác minh bằng file hoặc hash**. Hỗ trợ ảnh JPG/PNG/WebP (20 MB), bản ghi âm MP3/WAV (100 MB) và PDF (20 MB). 1 MB trong giới hạn ứng dụng = 1024 × 1024 byte.
+Đồ án blockchain cho nhóm 2–3 người, phát triển từ **Scaffold-ETH 2** và demo đăng ký/xác minh hiện có. Luồng nghiệp vụ: **đăng ký → xác minh → cấp giấy phép có hạn → kiểm tra → thu hồi hoặc cấp lại**.
 
-File được tính SHA-256 trong trình duyệt. Blockchain lưu hash, tên, mô tả, loại tác phẩm, ví đăng ký và thời điểm. Xem trước và nghe thử dùng file gốc trên thiết bị. Giấy phép sử dụng và quản lý giấy phép cá nhân là phần mở rộng tiếp theo.
+Hỗ trợ ảnh JPG/JPEG, PNG, WebP (20 MiB), PDF (20 MiB), MP3/WAV (100 MiB). File được tính SHA-256 trong trình duyệt; blockchain lưu hash và metadata. Người dùng tự giữ file gốc. Logo, tài liệu, bản vẽ và bản ghi nhạc là các tình huống minh họa; chưa hỗ trợ video.
 
 ## Chạy local
 
-Yêu cầu Node.js **>= 22.10.0** (khuyến nghị Node 24), Yarn **4.13.0**, Git và trình duyệt hiện đại.
-
-Mở terminal tại thư mục bất kỳ mà bạn muốn lưu dự án, rồi chạy:
-
-```sh
-git clone https://github.com/Fmong123/BTL_Blockchain_2627I_INT3231_1.git
-cd BTL_Blockchain_2627I_INT3231_1
-```
-
-Nếu đã clone hoặc đổi tên thư mục, mở terminal tại thư mục repo có file `package.json` và `yarn.lock`. Nếu máy chưa nhận lệnh `corepack`, xem [hướng dẫn cài Corepack](https://github.com/nodejs/corepack#manual-installs).
+Yêu cầu Node.js >= 22.10.0 (khuyến nghị Node 24), Yarn 4.13.0 và Git. Chạy tại root chứa package.json/yarn.lock:
 
 ```sh
 corepack enable
 yarn install --immutable
 ```
 
-Chạy từng lệnh sau từ thư mục gốc của repo. Giữ terminal 1 và 3 mở khi dùng ứng dụng.
-
-**Terminal 1 — blockchain:**
+Mỗi lệnh ở một terminal riêng; giữ blockchain và frontend mở:
 
 ```sh
+# Terminal 1: blockchain local
 yarn chain
-```
 
-**Terminal 2 — triển khai contract, chạy sau khi blockchain sẵn sàng:**
-
-```sh
+# Terminal 2: đợi RPC sẵn sàng rồi triển khai contract và sinh ABI
 yarn deploy
-```
 
-**Terminal 3 — website:**
-
-```sh
+# Terminal 3: frontend
 yarn start
 ```
 
-Mở [http://localhost:3000](http://localhost:3000). Website mặc định kết nối Hardhat local, Chain ID `31337`, RPC `http://127.0.0.1:8545`.
+Mở địa chỉ Next.js thông báo, mặc định http://localhost:3000. Mạng local: RPC http://127.0.0.1:8545, chain ID 31337. Có thể dùng Burner Wallet hoặc MetaMask với ví thử nghiệm; dùng faucet để nhận ETH local. Không cần kết nối ví để tra cứu/xác minh.
 
-## Demo bằng ví
+## Tạo bộ dữ liệu demo
 
-1. Mở trang **Đăng ký**, kết nối ví ở đầu trang. Có thể dùng **Burner Wallet** của Scaffold-ETH cho demo nhanh hoặc MetaMask.
-2. Với MetaMask, thêm mạng local theo RPC/Chain ID trên. Dùng một tài khoản Hardhat thử nghiệm được in khi chạy `yarn chain`, hoặc dùng ví thử nghiệm riêng và nhận ETH từ nút faucet ở đầu trang. Không dùng tài khoản/khóa thử nghiệm này trên mạng thật.
-3. Chọn một file gốc. Ứng dụng kiểm tra loại/dung lượng, tính hash, hiển thị xem trước hoặc nghe thử và tự gợi ý tên từ tên file.
-4. Nhập tên, mô tả nếu cần; nhấn **Ký và đăng ký tác phẩm**. Với MetaMask, xác nhận giao dịch trong ví. Chỉ hiển thị thành công sau khi receipt xác nhận thành công.
-5. Mở **Tác phẩm** để xem bản ghi theo thứ tự mới nhất. Chọn **Tác phẩm của tôi** để lọc theo ví đang kết nối. Nút **Xem bản ghi** mở thẳng kết quả xác minh.
-6. Mở **Xác minh** để tra cứu bằng file hoặc hash. Kết quả có tên, mô tả, loại tác phẩm, ví, thời điểm đăng ký và nút **Sao chép hash**. Bạn có thể xác minh khi ngắt kết nối ví.
-7. Thử đăng ký lại cùng file, kể cả bằng ví khác. Contract chặn trùng. Đổi tên file giữ nguyên hash, còn sửa byte trong file có thể làm hash khác.
+Sau deploy, chạy:
 
-Mã giao dịch sau đăng ký có liên kết tới Block Explorer local. **Công cụ** dẫn tới trang Debug để quản trị viên thử `pause`/`unpause`; tra cứu vẫn hoạt động khi đang tạm dừng.
+```sh
+yarn demo:seed
+```
 
-### Khởi động lại và xử lý lỗi
+Script chỉ dùng node local và từ chối chain ID khác 31337. Script sinh file mẫu tại `packages/hardhat/demo` cùng `manifest.json` chứa hash, địa chỉ ví và contract:
 
-- Hardhat local không giữ dữ liệu khi dừng node. Sau khi khởi động lại, chạy `yarn deploy` và đăng ký lại file mẫu. ABI/địa chỉ frontend được sinh tự động khi deploy; không sửa thủ công.
-- Nếu vừa thay đổi contract mà chưa deploy, frontend có thể báo lỗi đọc dữ liệu. Chạy deploy, sau đó tải lại trang.
-- Nếu MetaMask báo nonce không khớp sau khi reset node, xóa dữ liệu hoạt động/nonce của **tài khoản thử nghiệm trên mạng local** trong ví rồi thử lại, hoặc tạo tài khoản thử nghiệm khác. Khởi động lại node sẽ làm mất các bản ghi local.
-- Nếu không đọc được blockchain, kiểm tra terminal `yarn chain`, chạy deploy và kiểm tra cổng `8545`. Nếu cổng `3000` đang được dùng, dùng địa chỉ Next.js thông báo trong terminal.
-- Nút đăng ký chỉ khả dụng sau khi file/thông tin hợp lệ, ví đúng mạng, dữ liệu contract đọc được và tác phẩm chưa tồn tại. Giới hạn định dạng/dung lượng ở đăng ký và xác minh là như nhau.
-- Với audio lớn, chờ bước đọc/tính hash; không có phần trăm tiến độ giả. Trình duyệt đọc toàn bộ file vào RAM. Không phát được audio không đồng nghĩa không tính được hash; WAV phải có codec trình duyệt hỗ trợ để nghe thử.
-- Việc kiểm tra đuôi file/MIME giúp chọn đúng đầu vào; không chứng nhận nội dung hay quyền tác giả. Bản ghi và thông tin là công khai trong mạng demo. Chữ ký xác thực ví gửi giao dịch, không xác minh tên thật hoặc người sáng tạo tác phẩm.
+| Tài khoản Hardhat | Vai trò |
+| --- | --- |
+| #0 | Admin: pause/unpause qua Debug |
+| #1 | Người đăng ký ba tác phẩm và cấp giấy phép |
+| #2 | Người nhận các giấy phép |
+| #3 | Người ngoài để thử phân quyền |
+
+Giấy phép #1 cho ảnh còn hiệu lực, #2 cho audio đã thu hồi, #3 cho PDF hết hạn. Script tăng thời gian chain **61 giây** để có ngay trạng thái hết hạn. File gốc có thể chọn lại ở trang xác minh; âm thanh là WAV PCM 440 Hz dài 0,25 giây, ảnh là PNG 1 pixel, PDF tối giản, đều do code sinh.
+
+Seed dừng nếu contract đã có giấy phép để giữ dữ liệu hiện tại. Muốn tạo lại bộ mẫu: dừng/chạy lại `yarn chain`, chạy `yarn deploy` và `yarn demo:seed`. Tài khoản/khóa Hardhat chỉ dùng thử nghiệm, không dùng trên mạng thật.
+
+## Sử dụng
+
+1. **Đăng ký:** kết nối ví đúng mạng, chọn file, nhập tên/mô tả và xác nhận giao dịch. Chỉ báo thành công khi receipt thành công. File trùng bị chặn dù dùng ví khác.
+2. **Tác phẩm:** tìm theo tên/ví/hash, lọc loại hoặc ví của tôi, phân trang 10 bản ghi. Tìm/lọc áp dụng trên toàn tập bản ghi đã đọc.
+3. **Xác minh:** chọn file hoặc nhập hash; không cần ví. Nút Xem bản ghi mở `/works/verify?hash=...`, giữ tương thích đường dẫn bàn giao.
+4. **Cấp phép:** trong chi tiết, ví đăng ký nhập người nhận và hạn theo giờ Việt Nam, mặc định 30 ngày. Điều kiện v1 cố định: phi thương mại, ghi nguồn, không cấp lại/chuyển nhượng.
+5. **Quản lý của tôi:** mở mục Quản lý của tôi để xem tác phẩm đã đăng ký và giấy phép đã nhận. Đổi ví để kiểm tra hai vai trò.
+6. **Thu hồi:** ví đăng ký xác nhận thu hồi; người nhận thấy trạng thái cập nhật. Sau hết hạn/thu hồi, cấp lại sinh mã mới và giữ lịch sử.
+
+Chỉ ví đăng ký được cấp/thu hồi, admin không làm thay. Mỗi cặp tác phẩm–người nhận chỉ có một giấy phép còn hiệu lực. Không cấp cho ví rỗng hoặc chính mình. Khi pause, đăng ký/cấp mới bị chặn; đọc và thu hồi vẫn hoạt động.
+
+## Interface và tổ chức code
+
+| Thành phần | Vị trí |
+| --- | --- |
+| Contract/test | `packages/hardhat/contracts/WorkRegistry.sol`, `packages/hardhat/test` |
+| Deploy và seed | `packages/hardhat/deploy`, `packages/hardhat/scripts/seed_demo.ts` |
+| Route nghiệp vụ | `packages/nextjs/app/works`, `packages/nextjs/app/my` |
+| Component nghiệp vụ | `packages/nextjs/components/works`, `packages/nextjs/components/licenses` |
+| Hook nghiệp vụ | `packages/nextjs/hooks/works`, `packages/nextjs/hooks/licenses` |
+| File/hash và quy tắc thuần | `packages/nextjs/utils` |
+| ABI tự sinh | `packages/nextjs/contracts/deployedContracts.ts` |
+
+`works(hash)` trả `(registrant, registeredAt, title, description, workType)`; ví rỗng là chưa có bản ghi. `Image=0`, `Audio=1`, `Document=2`. Tên 1–256 byte UTF-8, mô tả 0–2048 byte UTF-8.
+
+`licenses(id)` trả `(fileHash, licensor, licensee, grantedAt, expiresAt, revoked)`. Mã bắt đầu từ 1. `latestLicenseId(hash, licensee)` trả mã mới nhất; dùng `isLicenseValid(id)` để kiểm tra hiệu lực. Timestamp là Unix **giây**, đọc bằng bigint; giao diện dùng giờ Việt Nam và thời gian blockchain, không dùng riêng đồng hồ máy để xác định hiệu lực.
+
+Không sửa ABI thủ công. Khi đổi contract, deploy lại. Giữ Debug/Block Explorer và Scaffold hooks; contract mẫu YourContract được dọn khỏi phần nghiệp vụ. Chi tiết quy ước và luồng dữ liệu: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Kiểm tra chất lượng
 
@@ -76,30 +88,25 @@ yarn lint
 yarn next:build
 ```
 
-`yarn test` chạy test contract và test xử lý file/hash bằng test runner tích hợp của Node, không cần cài thêm thư viện test. Có thể chạy riêng `yarn hardhat:test` hoặc `yarn test:files`. Test không yêu cầu giữ node local đang chạy. Thư mục artifacts/cache/build là đầu ra công cụ được Git bỏ qua.
+`yarn test` chạy test contract và quy tắc frontend. Có thể chạy riêng `yarn hardhat:test`, `yarn test:frontend` hoặc test file gốc `yarn test:files`. Test contract không cần giữ node local mở. Test thời gian dùng công cụ Hardhat, không chờ thực tế. CI cài dependency theo lockfile, test, chờ RPC, deploy/seed, kiểm tra kiểu, lint và build.
 
-Demo đã được kiểm tra với giao dịch thật qua Burner Wallet cho ảnh PNG, WAV PCM 100 MB và PDF; xác minh bằng file/hash, tra cứu khi ngắt ví, hash sai/chưa đăng ký, chặn đăng ký trùng và audio vượt giới hạn. File WAV kiểm thử được tạo trong bộ nhớ trình duyệt, không phải phép đo tốc độ đọc từ ổ đĩa. Lỗi RPC được mô phỏng trong trình duyệt; màn hình trả thông báo kết nối và nút thử lại. Bố cục được kiểm tra ở viewport 390 px. File kiểm thử trình duyệt không được lưu trong repo.
+Kết quả chạy thực tế và phạm vi kiểm chứng: [docs/VERIFICATION.md](docs/VERIFICATION.md).
 
-## Điểm bàn giao cho thành viên khác
+Trước khi nộp, chạy kịch bản nhiều ví từ clone mới: đăng ký đủ ba loại → xác minh không ví → A cấp cho B → B xem quyền → C không có quyền thay A → A thu hồi → cấp lại và xem lịch sử. Đo thêm đọc/băm WAV thực tế 20/50/100 MiB trên máy demo; file WAV nhỏ từ seed không thay thế phép đo này.
 
-| Phần | Vị trí / giao diện ổn định |
-| --- | --- |
-| Contract và test | `packages/hardhat/contracts/WorkRegistry.sol`, `packages/hardhat/test/WorkRegistry.ts` |
-| Đăng ký | `registerWork(bytes32 fileHash, string title, string description, WorkType workType)` |
-| Đọc tác phẩm | `works(fileHash)` trả về `(registrant, registeredAt, title, description, workType)` theo đúng thứ tự này |
-| Loại tác phẩm | `Image = 0`, `Audio = 1`, `Document = 2` |
-| Giới hạn thông tin | Tên: 1–256 byte UTF-8; mô tả: 0–2048 byte UTF-8. UI trim trước khi gửi và kiểm tra cùng giới hạn |
-| Event | `WorkRegistered(fileHash indexed, registrant indexed, registeredAt)`; dùng để dựng danh sách/lịch sử, đọc metadata từ `works` |
-| File và kiểm tra đầu vào | `packages/nextjs/utils/workFiles.ts`; hash tại `utils/hashFile.ts` |
-| Thành phần dùng chung | `packages/nextjs/components/works/WorkFilePicker.tsx`, `WorkRecord.tsx` |
-| Màn hình | `/`, `/works`, `/works/register`, `/works/verify` |
+## Xử lý lỗi
 
-Hash là `0x` + 64 ký tự hex; địa chỉ ví là hex. Timestamp blockchain là Unix **giây**, phía TypeScript đọc dưới dạng `bigint`; UI chuyển sang giờ Việt Nam. Bản ghi chưa có có `registrant = address(0)`. Giá trị `workType = 0` ở bản ghi trống không thể hiện tác phẩm ảnh đã tồn tại; luôn kiểm tra registrant trước.
+- Tắt Hardhat làm mất dữ liệu. Khởi động lại cần deploy lại và tạo dữ liệu mẫu; ABI/địa chỉ được sinh tự động.
+- Nếu RPC/contract không đọc được, kiểm tra cổng 8545, node và deploy, rồi thử lại/tải lại trang. Không thay dữ liệu blockchain lỗi bằng dữ liệu mẫu trong UI.
+- Sai nonce sau reset node: xóa dữ liệu hoạt động/nonce của tài khoản thử nghiệm local trong ví hoặc dùng tài khoản thử nghiệm mới.
+- Sai mạng, hủy ký hoặc thiếu ETH: chỉnh mạng/kết nối, thử lại hoặc nhận ETH local từ faucet.
+- Không phát được WAV có thể do codec trình duyệt; vẫn có thể băm nếu file hợp lệ. Ứng dụng đọc toàn bộ file vào RAM; không có phần trăm tiến độ giả.
+- Khi giao dịch thành công nhưng refresh lỗi, giữ mã giao dịch và tải lại dữ liệu; không gửi lại chỉ vì chưa thấy danh sách mới.
 
-Danh sách dùng event đăng ký và đọc chi tiết từ `works` cho các bản ghi trên trang hiện tại. Người làm giấy phép mở rộng contract và dùng hook trong `hooks/scaffold-eth` để tích hợp. Khi thêm hàm hoặc thay contract, deploy lại và dùng ABI được sinh tự động. Kế hoạch tổng thể và phân công ở [KE_HOACH_DU_AN.md](KE_HOACH_DU_AN.md).
+## Mã nguồn mở và giới hạn
 
-## Mã nguồn mở và phạm vi
+Kế thừa [Scaffold-ETH 2](https://github.com/scaffold-eth/scaffold-eth-2) và [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts). Giữ thông báo/giấy phép gốc trong `LICENCE`; phần tự phát triển gồm dữ liệu tác phẩm, xử lý file, quản lý giấy phép, giao diện tiếng Việt và các kiểm thử tương ứng.
 
-Kế thừa [Scaffold-ETH 2](https://github.com/scaffold-eth/scaffold-eth-2) (MIT), [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts) cùng các dependency trong repo. Giữ giấy phép gốc tại `LICENCE`. Phần phát triển thêm: đăng ký metadata, phân loại/kiểm tra ba loại file, xác minh hash, giao diện tiếng Việt và kiểm thử tương ứng.
+Hash chỉ đối chiếu byte; sửa/nén/đổi định dạng có thể làm hash khác. Chữ ký xác thực ví giao dịch, không tự xác minh tác giả, danh tính thật, nhãn hiệu hoặc bằng sáng chế. Ghi nhận tài liệu PDF không tạo quyền sáng chế. Giấy phép không chuyển quyền sở hữu và không ngăn sao chép file ngoài hệ thống. Không có lưu file, NFT/token, thanh toán hoặc indexer trong phiên bản local này.
 
-Đây là demo ghi nhận dữ liệu trên blockchain local phục vụ bài tập. Hash chỉ đối chiếu byte nguyên vẹn, không phát hiện ảnh/âm thanh/tài liệu tương tự và không ngăn sao chép file. Demo không thay thế thủ tục xác lập quyền tại cơ quan có thẩm quyền.
+Phạm vi, phân công và cải tiến tiếp theo: [KE_HOACH_DU_AN.md](KE_HOACH_DU_AN.md).
