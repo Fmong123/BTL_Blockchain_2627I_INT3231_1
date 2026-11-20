@@ -12,6 +12,7 @@
     "clean": "hardhat clean",
     "compile": "hardhat compile",
     "deploy": "hardhat compile && tsx scripts/runHardhatDeployWithPK.ts",
+    "demo:seed": "tsx scripts/seed_demo.ts",
     "flatten": "hardhat flatten",
     "fork": "MAINNET_FORKING_ENABLED=true hardhat node --network hardhat",
     "format": "prettier --write './**/*.(ts|sol)'",
