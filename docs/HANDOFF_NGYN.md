@@ -39,8 +39,6 @@ Sau khi xác nhận LicenseGranted, hệ thống lưu nội dung v2 chuẩn hóa
 
 ## Kịch bản trình bày 6 phút
 
-[Slide trình bày](handoff-media/ban-quyen-so-handoff.pptx) · [Video dự phòng có chú thích](handoff-media/demo-ban-quyen-so.mp4)
-
 | Thời gian | Màn hình | Thao tác |
 | --- | --- | --- |
 | 0:00–0:45 | Quản lý của tôi → Hồ sơ của tôi | Ví A ký SIWE, tạo hồ sơ và bật công khai tên/vai trò |
