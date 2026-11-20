@@ -30,12 +30,12 @@ Mở địa chỉ Next.js thông báo, mặc định http://localhost:3000. Mạ
 
 ### Bật hồ sơ, SIWE và điều khoản
 
-1. Tạo cơ sở dữ liệu PostgreSQL bằng UTF-8. Nếu dùng Docker, đặt biến môi trường BQS_POSTGRES_PASSWORD cho phiên terminal rồi chạy docker compose up -d --wait. Compose chỉ mở cổng 5432 trên máy local.
-2. Sao chép packages/nextjs/.env.example thành packages/nextjs/.env.local. Điền DATABASE_URL theo dạng postgresql://postgres:<mật-khẩu-đã-URL-encode>@127.0.0.1:5432/banquyenso. Đặt IRON_SESSION_SECRET bằng khóa ngẫu nhiên tối thiểu 32 ký tự (ví dụ chạy node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))" để sinh khóa).
-3. Đặt SIWE_ORIGIN đúng địa chỉ trình duyệt đang mở, gồm scheme, tên máy và cổng. Mặc định http://localhost:3000. COPYRIGHT_RPC_URL phải trỏ tới chính Hardhat mà frontend đang dùng. Sau khi sửa cấu hình, khởi động lại frontend.
-4. Tại root, chạy yarn db:migrate rồi yarn db:seed nếu cần hồ sơ mẫu. Migration có thể chạy lại. Seed chỉ chạy với database local và giữ các hồ sơ đã có.
+1. Tạo cơ sở dữ liệu PostgreSQL bằng UTF-8. Nếu dùng Docker, đặt biến môi trường `BQS_POSTGRES_PASSWORD` cho phiên terminal rồi chạy `docker compose up -d --wait`. Compose chỉ mở cổng 5432 trên máy local.
+2. Sao chép `packages/nextjs/.env.example` thành `packages/nextjs/.env.local`. Điền `DATABASE_URL` theo dạng `postgresql://postgres:<mật-khẩu-đã-URL-encode>@127.0.0.1:5432/banquyenso`. Đặt `IRON_SESSION_SECRET` bằng khóa ngẫu nhiên tối thiểu 32 ký tự. Có thể sinh khóa bằng `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.
+3. Đặt `SIWE_ORIGIN` đúng địa chỉ trình duyệt đang mở, gồm scheme, tên máy và cổng. Mặc định `http://localhost:3000`. `COPYRIGHT_RPC_URL` phải trỏ tới chính Hardhat mà frontend đang dùng. Sau khi sửa cấu hình, khởi động lại frontend.
+4. Tại root, chạy `yarn db:migrate` rồi `yarn db:seed` nếu cần hồ sơ mẫu. Migration có thể chạy lại. Seed chỉ chạy với database local và giữ các hồ sơ đã có.
 
-Nếu chạy trên PowerShell và Yarn bị chặn, thay yarn bằng yarn.cmd. Có thể dùng một PostgreSQL UTF-8 đã có thay Compose. Hồ sơ, đăng nhập và điều khoản cần Next.js có server runtime. Luồng đăng ký, xác minh và cấp/thu hồi V1 vẫn chạy được khi chưa cấu hình database.
+Nếu chạy trên PowerShell và Yarn bị chặn, thay `yarn` bằng `yarn.cmd`. Có thể dùng một PostgreSQL UTF-8 đã có thay Compose. Hồ sơ, đăng nhập và điều khoản cần Next.js có server runtime. Luồng đăng ký, xác minh và cấp/thu hồi V1 vẫn chạy được khi chưa cấu hình database.
 
 ## Tạo bộ dữ liệu demo
 
@@ -103,7 +103,7 @@ yarn next:build
 
 Kết quả chạy thực tế và phạm vi kiểm chứng: [docs/VERIFICATION.md](docs/VERIFICATION.md).
 
-Chạy yarn test:copyright trên app, Hardhat và PostgreSQL local dành riêng cho kiểm thử. Lệnh ký bằng ví Hardhat mẫu, cập nhật hồ sơ của các ví này và tạo giao dịch kiểm thử. Xem [bộ bàn giao](docs/HANDOFF_NGYN.md) để chuẩn bị demo 5–7 phút.
+Chạy `yarn test:copyright` trên app, Hardhat và PostgreSQL local dành riêng cho kiểm thử. Lệnh ký bằng ví Hardhat mẫu, cập nhật hồ sơ của các ví này và tạo giao dịch kiểm thử. Xem [bộ bàn giao](docs/HANDOFF_NGYN.md) để chuẩn bị demo 5–7 phút.
 
 ## Xử lý lỗi
 
