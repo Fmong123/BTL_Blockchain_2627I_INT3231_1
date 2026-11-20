@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useIsMounted } from "usehooks-ts";
 import { usePublicClient } from "wagmi";
 import { useSelectedNetwork } from "~~/hooks/scaffold-eth";
+import { hasContractCode } from "~~/utils/blockchain";
 import {
   Contract,
   ContractCodeStatus,
@@ -64,8 +65,8 @@ export function useDeployedContractInfo<TContractName extends ContractName>(
           address: deployedContract.address,
         });
 
-        // If contract code is `0x` => no contract deployed on that address
-        if (code === "0x") {
+        // Viem normalizes the RPC's empty `0x` response to undefined.
+        if (!hasContractCode(code)) {
           setStatus(ContractCodeStatus.NOT_FOUND);
           return;
         }
