@@ -4,58 +4,51 @@ import { useEffect, useState } from "react";
 import { Address, createPublicClient, http, toHex } from "viem";
 import { hardhat } from "viem/chains";
 
-const publicClient = createPublicClient({
-  chain: hardhat,
-  transport: http(),
-});
-
+const publicClient = createPublicClient({ chain: hardhat, transport: http() });
+const STORAGE_SLOTS_TO_DISPLAY = 16;
 export const AddressStorageTab = ({ address }: { address: Address }) => {
-  const [storage, setStorage] = useState<string[]>([]);
-
+  const [storage, setStorage] = useState<string[]>();
+  const [error, setError] = useState(false);
   useEffect(() => {
-    const fetchStorage = async () => {
-      try {
-        const storageData = [];
-        let idx = 0;
-
-        while (true) {
-          const storageAtPosition = await publicClient.getStorageAt({
-            address: address,
-            slot: toHex(idx),
-          });
-
-          if (storageAtPosition === "0x" + "0".repeat(64)) break;
-
-          if (storageAtPosition) {
-            storageData.push(storageAtPosition);
-          }
-
-          idx++;
+    let active = true;
+    Promise.all(
+      Array.from({ length: STORAGE_SLOTS_TO_DISPLAY }, (_, index) =>
+        publicClient.getStorageAt({ address, slot: toHex(index) }),
+      ),
+    )
+      .then(values => {
+        if (active) {
+          setStorage(values.map(value => value ?? "0x"));
+          setError(false);
         }
-        setStorage(storageData);
-      } catch (error) {
-        console.error("Failed to fetch storage:", error);
-      }
+      })
+      .catch(() => {
+        if (active) setError(true);
+      });
+    return () => {
+      active = false;
     };
-
-    fetchStorage();
   }, [address]);
-
+  if (error)
+    return (
+      <p role="alert" className="alert alert-error mt-5">
+        Không đọc được bộ nhớ contract. Hãy tải lại trang để thử lại.
+      </p>
+    );
+  if (!storage)
+    return (
+      <p role="status" className="mt-5">
+        Đang đọc bộ nhớ contract…
+      </p>
+    );
   return (
-    <div className="flex flex-col gap-3 p-4">
-      {storage.length > 0 ? (
-        <div className="mockup-code overflow-auto max-h-[500px]">
-          <pre className="px-5 whitespace-pre-wrap break-words">
-            {storage.map((data, i) => (
-              <div key={i}>
-                <strong>Storage Slot {i}:</strong> {data}
-              </div>
-            ))}
-          </pre>
-        </div>
-      ) : (
-        <div className="text-lg">This contract does not have any variables.</div>
-      )}
-    </div>
+    <section className="mt-5 space-y-4">
+      <p className="text-base-content/70">
+        Hiển thị {STORAGE_SLOTS_TO_DISPLAY} ô nhớ đầu tiên; dữ liệu mapping không được liệt kê đầy đủ ở đây.
+      </p>
+      <div className="bqs-explorer-panel">
+        <pre className="bqs-explorer-code">{storage.map((value, index) => `Slot ${index}: ${value}`).join("\n")}</pre>
+      </div>
+    </section>
   );
 };

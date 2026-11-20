@@ -1,27 +1,22 @@
-type AddressCodeTabProps = {
-  bytecode: string;
-  assembly: string;
-};
-
+type AddressCodeTabProps = { bytecode: string; assembly: string };
 export const AddressCodeTab = ({ bytecode, assembly }: AddressCodeTabProps) => {
-  const formattedAssembly = Array.from(assembly.matchAll(/\w+( 0x[a-fA-F0-9]+)?/g))
-    .map(it => it[0])
+  const opcodes = Array.from(assembly.matchAll(/\w+( 0x[a-fA-F0-9]+)?/g))
+    .map(item => item[0])
     .join("\n");
-
   return (
-    <div className="flex flex-col gap-3 p-4">
-      Bytecode
-      <div className="mockup-code -indent-5 overflow-y-auto max-h-[500px]">
-        <pre className="px-5">
-          <code className="whitespace-pre-wrap overflow-auto break-words">{bytecode}</code>
-        </pre>
-      </div>
-      Opcodes
-      <div className="mockup-code -indent-5 overflow-y-auto max-h-[500px]">
-        <pre className="px-5">
-          <code>{formattedAssembly}</code>
-        </pre>
-      </div>
+    <div className="mt-5 space-y-6">
+      <section>
+        <h2 className="text-xl font-semibold mb-3">Bytecode</h2>
+        <div className="bqs-explorer-panel">
+          <pre className="bqs-explorer-code">{bytecode}</pre>
+        </div>
+      </section>
+      <section>
+        <h2 className="text-xl font-semibold mb-3">Mã lệnh EVM</h2>
+        <div className="bqs-explorer-panel">
+          <pre className="bqs-explorer-code">{opcodes}</pre>
+        </div>
+      </section>
     </div>
   );
 };

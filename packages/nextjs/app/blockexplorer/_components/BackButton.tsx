@@ -1,12 +1,8 @@
-"use client";
+import Link from "next/link";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
-import { useRouter } from "next/navigation";
-
-export const BackButton = () => {
-  const router = useRouter();
-  return (
-    <button className="btn btn-sm btn-primary" onClick={() => router.back()}>
-      Back
-    </button>
-  );
-};
+export const BackButton = () => (
+  <Link href="/blockexplorer" className="btn btn-outline btn-sm">
+    <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" /> Tra cứu giao dịch
+  </Link>
+);

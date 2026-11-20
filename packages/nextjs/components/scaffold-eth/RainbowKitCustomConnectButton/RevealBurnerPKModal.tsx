@@ -14,9 +14,9 @@ export const RevealBurnerPKModal = () => {
     try {
       const storage = rainbowkitBurnerWallet.useSessionStorage ? sessionStorage : localStorage;
       const burnerPK = storage?.getItem(BURNER_WALLET_PK_KEY);
-      if (!burnerPK) throw new Error("Burner wallet private key not found");
+      if (!burnerPK) throw new Error("Không tìm thấy khóa của ví thử nghiệm.");
       await copyToClipboard(burnerPK);
-      notification.success("Burner wallet private key copied to clipboard");
+      notification.success("Đã sao chép khóa ví thử nghiệm.");
     } catch (e) {
       const parsedError = getParsedError(e);
       notification.error(parsedError);
@@ -36,19 +36,19 @@ export const RevealBurnerPKModal = () => {
               ✕
             </label>
             <div>
-              <p className="text-lg font-semibold m-0 p-0">Copy Burner Wallet Private Key</p>
+              <h2 className="m-0 p-0 pr-8">Khóa ví thử nghiệm</h2>
               <div role="alert" className="alert alert-warning mt-4">
                 <ShieldExclamationIcon className="h-6 w-6" />
                 <span className="font-semibold">
-                  Burner wallets are intended for local development only and are not safe for storing real funds.
+                  Ví thử nghiệm chỉ dùng để phát triển local. Không dùng ví này để giữ tài sản thật.
                 </span>
               </div>
               <p>
-                Your Private Key provides <strong>full access</strong> to your entire wallet and funds. This is
-                currently stored <strong>temporarily</strong> in your browser.
+                Khóa bí mật cho phép <strong>toàn quyền truy cập</strong> ví và tài sản trong ví. Khóa của ví thử nghiệm
+                được lưu trong trình duyệt.
               </p>
               <button className="btn btn-outline btn-error" onClick={handleCopyPK} disabled={isCopiedToClipboard}>
-                Copy Private Key To Clipboard
+                Sao chép khóa bí mật
               </button>
             </div>
           </label>

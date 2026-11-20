@@ -1,10 +1,10 @@
+import { notFound } from "next/navigation";
 import fs from "fs";
 import path from "path";
-import { Address } from "viem";
+import { Address, isAddress } from "viem";
 import { hardhat } from "viem/chains";
 import { AddressComponent } from "~~/app/blockexplorer/_components/AddressComponent";
 import deployedContracts from "~~/contracts/deployedContracts";
-import { isZeroAddress } from "~~/utils/scaffold-eth/common";
 import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 type PageProps = {
@@ -49,7 +49,7 @@ const getContractData = async (address: Address) => {
   const artifactsDirectory = path.join(process.cwd(), "..", "hardhat", "artifacts", "build-info");
 
   if (!fs.existsSync(artifactsDirectory)) {
-    throw new Error(`Directory ${artifactsDirectory} not found.`);
+    return null;
   }
 
   let matchedContractName = "";
@@ -80,7 +80,7 @@ const AddressPage = async (props: PageProps) => {
   const params = await props.params;
   const address = params?.address as Address;
 
-  if (isZeroAddress(address)) return null;
+  if (!isAddress(address)) notFound();
 
   const contractData: { bytecode: string; assembly: string } | null = await getContractData(address);
   return <AddressComponent address={address} contractData={contractData} />;

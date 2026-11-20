@@ -1,49 +1,53 @@
 "use client";
 
 import { useState } from "react";
+import type { SubmitEvent } from "react";
 import { useRouter } from "next/navigation";
-import { isAddress, isHex } from "viem";
-import { hardhat } from "viem/chains";
-import { usePublicClient } from "wagmi";
+import { parseExplorerSearch } from "~~/utils/explorer";
 
 export const SearchBar = () => {
   const [searchInput, setSearchInput] = useState("");
+  const [error, setError] = useState("");
   const router = useRouter();
-
-  const client = usePublicClient({ chainId: hardhat.id });
-
-  const handleSearch = async (event: React.SubmitEvent) => {
+  function handleSearch(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isHex(searchInput)) {
-      try {
-        const tx = await client?.getTransaction({ hash: searchInput });
-        if (tx) {
-          router.push(`/blockexplorer/transaction/${searchInput}`);
-          return;
-        }
-      } catch (error) {
-        console.error("Failed to fetch transaction:", error);
-      }
+    setError("");
+    try {
+      const result = parseExplorerSearch(searchInput);
+      router.push(`/blockexplorer/${result.kind === "address" ? "address" : "transaction"}/${result.value}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Thông tin tra cứu không hợp lệ.");
     }
-
-    if (isAddress(searchInput)) {
-      router.push(`/blockexplorer/address/${searchInput}`);
-      return;
-    }
-  };
-
+  }
   return (
-    <form onSubmit={handleSearch} className="flex items-center justify-end mb-5 space-x-3 mx-5">
-      <input
-        className="border-primary bg-base-100 text-base-content placeholder:text-base-content/50 p-2 mr-2 w-full md:w-1/2 lg:w-1/3 focus:outline-hidden focus:ring-2 focus:ring-accent"
-        type="text"
-        value={searchInput}
-        placeholder="Search by hash or address"
-        onChange={e => setSearchInput(e.target.value)}
-      />
-      <button className="btn btn-sm btn-primary" type="submit">
-        Search
-      </button>
-    </form>
+    <div className="mb-6">
+      <form onSubmit={handleSearch} className="bqs-explorer-search !mb-0">
+        <label>
+          <span className="label">Hash giao dịch hoặc địa chỉ ví</span>
+          <input
+            className="input input-bordered font-mono"
+            value={searchInput}
+            placeholder="0x…"
+            spellCheck={false}
+            autoCapitalize="off"
+            autoComplete="off"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "explorer-search-error" : undefined}
+            onChange={event => {
+              setSearchInput(event.target.value);
+              setError("");
+            }}
+          />
+        </label>
+        <button className="btn btn-primary" type="submit">
+          Tra cứu
+        </button>
+      </form>
+      {error && (
+        <p id="explorer-search-error" role="alert" className="mb-0 text-error">
+          {error}
+        </p>
+      )}
+    </div>
   );
 };
