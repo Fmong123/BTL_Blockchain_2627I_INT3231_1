@@ -33,9 +33,9 @@ export function DebugContracts() {
   }, [contractNames, selectedContract, setSelectedContract]);
 
   return (
-    <div className="flex flex-col gap-y-6 lg:gap-y-8 py-8 lg:py-12 justify-center items-center">
+    <div className="flex min-w-0 flex-col gap-6 items-stretch">
       {contractNames.length === 0 ? (
-        <p className="text-3xl mt-14">No contracts found!</p>
+        <p role="status">Chưa có contract được triển khai.</p>
       ) : (
         <>
           {contractNames.length > 1 && (

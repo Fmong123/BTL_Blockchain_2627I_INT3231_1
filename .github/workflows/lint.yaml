@@ -1,43 +1,55 @@
-name: Lint
+name: Quality checks
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  ci:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        node: [lts/*]
-
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
-        uses: actions/checkout@master
-
-      - name: Setup node env
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
-          cache: yarn
-
-      - name: Install dependencies
-        run: yarn install --immutable
-      
-      - name: Run hardhat node, deploy contracts (& generate contracts typescript output)
-        run: yarn chain & yarn deploy
-
-      - name: Run hardhat lint
-        run: yarn hardhat:lint --max-warnings=0
-
-      - name: Run nextjs lint
-        run: yarn next:lint --max-warnings=0
-
-      - name: Check typings on nextjs
-        run: yarn next:check-types
+          node-version: 24
+      - name: Enable Corepack and install locked dependencies
+        run: |
+          corepack enable
+          yarn install --immutable
+      - name: Test contract and frontend rules
+        run: yarn test
+      - name: Start local blockchain and wait for RPC
+        run: |
+          yarn chain > /tmp/bqs-chain.log 2>&1 &
+          node --input-type=module -e '
+            for (let attempt = 0; attempt < 60; attempt++) {
+              try {
+                const response = await fetch("http://127.0.0.1:8545", {
+                  method: "POST", headers: {"Content-Type": "application/json"},
+                  body: JSON.stringify({jsonrpc: "2.0", id: 1, method: "eth_chainId", params: []})
+                });
+                const result = await response.json();
+                if (result.result === "0x7a69") process.exit(0);
+              } catch {}
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            console.error("Hardhat RPC did not become ready"); process.exit(1);
+          '
+      - name: Deploy, generate ABI and seed local data
+        run: |
+          yarn deploy
+          yarn demo:seed
+      - name: Check TypeScript
+        run: |
+          yarn hardhat:check-types
+          yarn next:check-types
+      - name: Lint
+        run: yarn lint
+      - name: Build frontend
+        run: yarn next:build
+      - name: Show blockchain log on failure
+        if: failure()
+        run: cat /tmp/bqs-chain.log 2>/dev/null || true

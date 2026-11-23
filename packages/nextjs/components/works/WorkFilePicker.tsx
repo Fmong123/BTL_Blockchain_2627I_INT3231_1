@@ -73,7 +73,7 @@ export function WorkFilePicker({ value, disabled, onChange, onBusyChange }: Work
 
   return (
     <div className="space-y-4">
-      <div>
+      <div className="bqs-file-zone">
         <label className="label font-semibold text-base-content" htmlFor="work-file">
           Chọn file tác phẩm
         </label>

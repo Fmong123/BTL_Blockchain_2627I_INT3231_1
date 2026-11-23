@@ -64,41 +64,40 @@ export const AddressInfoDropdown = ({
         <ul className="dropdown-content menu z-2 p-2 mt-2 shadow-lg bg-base-200 gap-1">
           <NetworkOptions hidden={!selectingNetwork} />
           <li className={selectingNetwork ? "hidden" : ""}>
-            <div
+            <button
+              type="button"
               className="h-8 btn-sm flex gap-3 py-3 cursor-pointer"
               onClick={() => copyAddressToClipboard(checkSumAddress)}
             >
               {isAddressCopiedToClipboard ? (
                 <>
                   <CheckCircleIcon className="text-xl font-normal h-6 w-4 ml-2 sm:ml-0" aria-hidden="true" />
-                  <span className="whitespace-nowrap">Copied!</span>
+                  <span className="whitespace-nowrap">Đã sao chép</span>
                 </>
               ) : (
                 <>
                   <DocumentDuplicateIcon className="text-xl font-normal h-6 w-4 ml-2 sm:ml-0" aria-hidden="true" />
-                  <span className="whitespace-nowrap">Copy address</span>
+                  <span className="whitespace-nowrap">Sao chép địa chỉ</span>
                 </>
               )}
-            </div>
+            </button>
           </li>
           <li className={selectingNetwork ? "hidden" : ""}>
             <label htmlFor="qrcode-modal" className="h-8 btn-sm flex gap-3 py-3">
               <QrCodeIcon className="h-6 w-4 ml-2 sm:ml-0" />
-              <span className="whitespace-nowrap">View QR Code</span>
+              <span className="whitespace-nowrap">Mã QR ví</span>
             </label>
           </li>
           <li className={selectingNetwork ? "hidden" : ""}>
-            <button className="h-8 btn-sm flex gap-3 py-3" type="button">
+            <a
+              className="btn-sm flex gap-3 py-3"
+              target="_blank"
+              href={blockExplorerAddressLink}
+              rel="noopener noreferrer"
+            >
               <ArrowTopRightOnSquareIcon className="h-6 w-4 ml-2 sm:ml-0" />
-              <a
-                target="_blank"
-                href={blockExplorerAddressLink}
-                rel="noopener noreferrer"
-                className="whitespace-nowrap"
-              >
-                View on Block Explorer
-              </a>
-            </button>
+              <span>Xem hoạt động của ví</span>
+            </a>
           </li>
           {allowedNetworks.length > 1 ? (
             <li className={selectingNetwork ? "hidden" : ""}>
@@ -109,7 +108,7 @@ export const AddressInfoDropdown = ({
                   setSelectingNetwork(true);
                 }}
               >
-                <ArrowsRightLeftIcon className="h-6 w-4 ml-2 sm:ml-0" /> <span>Switch Network</span>
+                <ArrowsRightLeftIcon className="h-6 w-4 ml-2 sm:ml-0" /> <span>Đổi mạng</span>
               </button>
             </li>
           ) : null}
@@ -117,7 +116,7 @@ export const AddressInfoDropdown = ({
             <li>
               <label htmlFor="reveal-burner-pk-modal" className="h-8 btn-sm flex gap-3 py-3 text-error">
                 <EyeIcon className="h-6 w-4 ml-2 sm:ml-0" />
-                <span>Reveal Private Key</span>
+                <span>Khóa ví thử nghiệm</span>
               </label>
             </li>
           ) : null}
@@ -127,7 +126,7 @@ export const AddressInfoDropdown = ({
               type="button"
               onClick={() => disconnect()}
             >
-              <ArrowLeftEndOnRectangleIcon className="h-6 w-4 ml-2 sm:ml-0" /> <span>Disconnect</span>
+              <ArrowLeftEndOnRectangleIcon className="h-6 w-4 ml-2 sm:ml-0" /> <span>Ngắt kết nối</span>
             </button>
           </li>
         </ul>

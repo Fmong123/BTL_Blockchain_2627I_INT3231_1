@@ -15,7 +15,7 @@ import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
   return (
     <>
-      <div className={`flex flex-col min-h-screen `}>
+      <div className="bqs-shell">
         <Header />
         <main className="relative flex flex-col flex-1">{children}</main>
         <Footer />
@@ -47,9 +47,13 @@ export const ScaffoldEthAppWithProviders = ({ children }: { children: React.Reac
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           avatar={BlockieAvatar}
-          theme={mounted ? (isDarkMode ? darkTheme() : lightTheme()) : lightTheme()}
+          theme={
+            mounted && isDarkMode
+              ? darkTheme({ accentColor: "#bda7ff", accentColorForeground: "#241644", borderRadius: "medium" })
+              : lightTheme({ accentColor: "#7050cd", accentColorForeground: "#ffffff", borderRadius: "medium" })
+          }
         >
-          <ProgressBar height="3px" color="#2299dd" />
+          <ProgressBar height="3px" color="#7050cd" />
           <ScaffoldEthApp>{children}</ScaffoldEthApp>
         </RainbowKitProvider>
       </QueryClientProvider>

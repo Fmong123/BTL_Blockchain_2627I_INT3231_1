@@ -1,9 +1,9 @@
 "use client";
 
-import { BackButton } from "./BackButton";
 import { ContractTabs } from "./ContractTabs";
 import { Address, Balance } from "@scaffold-ui/components";
 import { Address as AddressType } from "viem";
+import { PageHeader } from "~~/components/PageHeader";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 
 export const AddressComponent = ({
@@ -15,26 +15,30 @@ export const AddressComponent = ({
 }) => {
   const { targetNetwork } = useTargetNetwork();
   return (
-    <div className="m-10 mb-20">
-      <div className="flex justify-start mb-5">
-        <BackButton />
-      </div>
-      <div className="col-span-5 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
-        <div className="col-span-1 flex flex-col">
-          <div className="bg-base-100 border-base-300 border px-6 lg:px-8 mb-6 space-y-1 py-4 overflow-x-auto">
-            <div className="flex">
-              <div className="flex flex-col gap-1">
-                <Address address={address} format="long" onlyEnsOrAddress chain={targetNetwork} />
-                <div className="flex gap-1 items-center">
-                  <span className="font-bold text-sm">Balance:</span>
-                  <Balance address={address} />
-                </div>
-              </div>
-            </div>
+    <div className="bqs-page">
+      <PageHeader
+        title="Chi tiết địa chỉ"
+        description="Số dư và lịch sử hoạt động của địa chỉ trên mạng local."
+        backHref="/blockexplorer"
+        backLabel="Tra cứu giao dịch"
+      />
+      <section className="bqs-explorer-panel mb-6" aria-label="Thông tin địa chỉ">
+        <dl className="bqs-data-list">
+          <div className="bqs-data-row">
+            <dt>Địa chỉ ví / contract</dt>
+            <dd className="bqs-address-value">
+              <Address address={address} format="long" size="base" onlyEnsOrAddress chain={targetNetwork} />
+            </dd>
           </div>
-        </div>
-      </div>
-      <ContractTabs address={address} contractData={contractData} />
+          <div className="bqs-data-row">
+            <dt>Số dư</dt>
+            <dd>
+              <Balance address={address} />
+            </dd>
+          </div>
+        </dl>
+      </section>
+      <ContractTabs key={address} address={address} contractData={contractData} />
     </div>
   );
 };

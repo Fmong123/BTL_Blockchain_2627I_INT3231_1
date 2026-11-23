@@ -6,6 +6,7 @@ import { WriteContractErrorType, WriteContractReturnType } from "wagmi/actions";
 import { WriteContractVariables } from "wagmi/query";
 import { useSelectedNetwork } from "~~/hooks/scaffold-eth";
 import { useDeployedContractInfo, useTransactor } from "~~/hooks/scaffold-eth";
+import { createTransactionContext } from "~~/utils/blockchain";
 import { AllowedChainIds, notification } from "~~/utils/scaffold-eth";
 import {
   ContractAbi,
@@ -71,7 +72,7 @@ export function useScaffoldWriteContract<TContractName extends ContractName>(
     }
   }, [configOrName]);
 
-  const { chain: accountChain } = useAccount();
+  const { chain: accountChain, address: accountAddress } = useAccount();
   const writeTx = useTransactor();
   const [isMining, setIsMining] = useState(false);
 
@@ -107,11 +108,23 @@ export function useScaffoldWriteContract<TContractName extends ContractName>(
 
     try {
       setIsMining(true);
-      const { blockConfirmations, onBlockConfirmation, ...mutateOptions } = options || {};
+      const {
+        blockConfirmations,
+        onBlockConfirmation,
+        notificationContext: actionContext,
+        ...mutateOptions
+      } = options || {};
+      const notificationContext = createTransactionContext(
+        accountAddress,
+        selectedNetwork.id,
+        actionContext ?? `${contractName}.${variables.functionName}`,
+      );
 
       const writeContractObject = {
         abi: deployedContractData.abi as Abi,
         address: deployedContractData.address,
+        account: accountAddress,
+        chainId: selectedNetwork.id,
         ...variables,
       } as WriteContractVariables<Abi, string, any[], Config, number>;
 
@@ -120,6 +133,7 @@ export function useScaffoldWriteContract<TContractName extends ContractName>(
           wagmiConfig,
           writeContractParams: writeContractObject,
           chainId: selectedNetwork.id as AllowedChainIds,
+          notificationContext,
         });
       }
 
@@ -135,7 +149,11 @@ export function useScaffoldWriteContract<TContractName extends ContractName>(
               >
             | undefined,
         );
-      const writeTxResult = await writeTx(makeWriteWithParams, { blockConfirmations, onBlockConfirmation });
+      const writeTxResult = await writeTx(makeWriteWithParams, {
+        blockConfirmations,
+        onBlockConfirmation,
+        notificationContext,
+      });
 
       return writeTxResult;
     } catch (e: any) {
