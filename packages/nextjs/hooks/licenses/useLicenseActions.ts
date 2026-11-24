@@ -3,7 +3,7 @@ import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { getParsedError, notification } from "~~/utils/scaffold-eth";
 
 // The caller mounts this hook inside a component keyed by account, chain and work.
-export function useLicenseActions(refresh: () => Promise<void>) {
+export function useLicenseActions(refresh: () => Promise<void>, attachTerms?: (tx: string) => Promise<void>) {
   const active = useRef(true);
   const locked = useRef(false);
   const [busy, setBusy] = useState(false);
@@ -44,6 +44,15 @@ export function useLicenseActions(refresh: () => Promise<void>) {
             );
       if (!hash) throw new Error("Chưa gửi được giao dịch. Hãy kiểm tra ví và mạng đang kết nối.");
       if (active.current) setTxHash(hash);
+      if (!("licenseId" in action) && attachTerms) {
+        try {
+          await attachTerms(hash);
+        } catch {
+          const warning = "Đã cấp giấy phép. Chưa lưu được điều khoản. Mở thẻ giấy phép để gắn lại.";
+          if (active.current) setRefreshWarning(warning);
+          notification.warning(warning);
+        }
+      }
       try {
         await refresh();
       } catch {

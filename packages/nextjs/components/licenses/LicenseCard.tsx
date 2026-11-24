@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Address } from "@scaffold-ui/components";
+import { LicenseTermsPanel } from "~~/components/copyright/LicenseTermsPanel";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { LICENSE_STATUS_LABELS, License, formatVietnamTimestamp, getLicenseStatus } from "~~/utils/licenses";
 
@@ -74,6 +75,9 @@ export function LicenseCard({
             </Link>
           )}
         </div>
+        {grantHash && (
+          <LicenseTermsPanel key={grantHash} license={license} tx={grantHash} active={status === "valid"} />
+        )}
         {canRevoke &&
           !license.revoked &&
           (confirm ? (

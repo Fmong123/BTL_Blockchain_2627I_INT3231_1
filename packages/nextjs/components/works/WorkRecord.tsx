@@ -3,6 +3,7 @@
 import { Address } from "@scaffold-ui/components";
 import { zeroAddress } from "viem";
 import { hardhat } from "viem/chains";
+import { WorkDetailsPanel } from "~~/components/copyright/WorkDetailsPanel";
 import { WorkLicenses } from "~~/components/licenses/WorkLicenses";
 import { WORK_CATEGORIES, WorkArt } from "~~/components/works/WorkArt";
 import { WorkHash } from "~~/components/works/WorkHash";
@@ -82,6 +83,7 @@ export function WorkRecord({ fileHash, headingLevel = 2 }: { fileHash: `0x${stri
           </span>
         </div>
       </section>
+      <WorkDetailsPanel key={fileHash} fileHash={fileHash} registrant={work[0]} />
       <WorkLicenses fileHash={fileHash} registrant={work[0]} />
     </>
   );

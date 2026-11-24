@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { isAddressEqual } from "viem";
 import { useAccount } from "wagmi";
+import { copyrightApi, useWalletSession } from "~~/components/copyright/WalletSession";
 import { GrantLicenseForm } from "~~/components/licenses/GrantLicenseForm";
 import { LicenseCard } from "~~/components/licenses/LicenseCard";
 import { LicenseHistory } from "~~/components/licenses/LicenseHistory";
@@ -10,7 +12,7 @@ import { useLicenseActions } from "~~/hooks/licenses/useLicenseActions";
 import { useLicenseHistory } from "~~/hooks/licenses/useLicenseHistory";
 import { useRegistryClock } from "~~/hooks/licenses/useRegistryClock";
 import { useScaffoldReadContract, useTargetNetwork } from "~~/hooks/scaffold-eth";
-import { LICENSE_TERMS, LICENSE_TERMS_VERSION } from "~~/utils/licenses";
+import { CURRENT_TERMS } from "~~/utils/licenseTerms";
 import { getParsedError } from "~~/utils/scaffold-eth";
 
 export function WorkLicenses({ fileHash, registrant }: { fileHash: `0x${string}`; registrant: string }) {
@@ -25,6 +27,7 @@ function WorkLicensesForAccount({ fileHash, registrant }: { fileHash: `0x${strin
   const { targetNetwork } = useTargetNetwork();
   const history = useLicenseHistory({ fileHash });
   const clock = useRegistryClock();
+  const queryClient = useQueryClient();
   const pause = useScaffoldReadContract({
     contractName: "WorkRegistry",
     functionName: "paused",
@@ -35,9 +38,18 @@ function WorkLicensesForAccount({ fileHash, registrant }: { fileHash: `0x${strin
       history.refresh(),
       clock.refetch({ throwOnError: true }),
       pause.refetch({ throwOnError: true }),
+      queryClient.invalidateQueries({ queryKey: ["copyright", "terms"] }),
     ]);
   }
-  const actions = useLicenseActions(refresh);
+  const { wallet, signedIn } = useWalletSession();
+  const actions = useLicenseActions(
+    refresh,
+    signedIn
+      ? async hash => {
+          await copyrightApi("terms?tx=" + hash, "PUT", { version: CURRENT_TERMS.version }, wallet);
+        }
+      : undefined,
+  );
   const isRegistrant = Boolean(address && isAddressEqual(address, registrant));
   const correctNetwork = chainId === targetNetwork.id;
   const canRevoke = isRegistrant && correctNetwork && !history.error;
@@ -61,6 +73,7 @@ function WorkLicensesForAccount({ fileHash, registrant }: { fileHash: `0x${strin
               }
               busy={actions.busy}
               pendingLabel={actions.pendingLabel}
+              attachTerms={signedIn}
               grant={(licensee, expiresAt) => actions.send({ fileHash, licensee, expiresAt })}
             />
           ) : (
@@ -73,12 +86,6 @@ function WorkLicensesForAccount({ fileHash, registrant }: { fileHash: `0x${strin
                     ? "Đang đọc thời gian blockchain để chọn hạn cấp phép…"
                     : "Chỉ ví đăng ký tác phẩm được cấp và thu hồi giấy phép."}
               </p>
-              <div className="mt-5 rounded-box bg-base-200 p-4 text-xs text-base-content/65">
-                <strong className="font-medium text-base-content">
-                  Điều kiện sử dụng · Phiên bản {LICENSE_TERMS_VERSION}
-                </strong>
-                <p className="mb-0">{LICENSE_TERMS}</p>
-              </div>
               <p className="mb-0 text-xs text-base-content/60">
                 Giấy phép được tra cứu công khai và ghi nhận sự cho phép của ví đăng ký.
               </p>
