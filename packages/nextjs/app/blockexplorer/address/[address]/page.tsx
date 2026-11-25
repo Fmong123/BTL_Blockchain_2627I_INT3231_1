@@ -1,10 +1,11 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import fs from "fs";
 import path from "path";
 import { Address, isAddress } from "viem";
 import { hardhat } from "viem/chains";
 import { AddressComponent } from "~~/app/blockexplorer/_components/AddressComponent";
 import deployedContracts from "~~/contracts/deployedContracts";
+import { copyrightChain } from "~~/copyright.config";
 import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 type PageProps = {
@@ -81,6 +82,7 @@ const AddressPage = async (props: PageProps) => {
   const address = params?.address as Address;
 
   if (!isAddress(address)) notFound();
+  if (copyrightChain.id !== hardhat.id) redirect(copyrightChain.blockExplorers.default.url + "/address/" + address);
 
   const contractData: { bytecode: string; assembly: string } | null = await getContractData(address);
   return <AddressComponent address={address} contractData={contractData} />;

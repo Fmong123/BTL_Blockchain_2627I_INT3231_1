@@ -1,11 +1,17 @@
 import { z } from "zod";
 import { createChallenge, loginSession, signatureSchema, verifyChallenge } from "~~/services/copyright/auth";
+import { chainId } from "~~/services/copyright/chain";
 import { endpoint, jsonBody } from "~~/services/copyright/http";
 import { addressSchema } from "~~/utils/copyrightDetails";
 
 export const GET = endpoint(async () => {
   const session = await loginSession();
-  return { wallet: session.expiresAt && session.expiresAt > Date.now() ? (session.wallet ?? null) : null };
+  return {
+    wallet:
+      session.chainId === chainId && session.expiresAt && session.expiresAt > Date.now()
+        ? (session.wallet ?? null)
+        : null,
+  };
 });
 
 export const POST = endpoint(async request => {

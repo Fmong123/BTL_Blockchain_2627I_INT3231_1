@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Notice } from "./Notice";
+import { Address } from "@scaffold-ui/components";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { hardhat } from "viem/chains";
 import { useAccount, useSignMessage } from "wagmi";
+import { copyrightChain } from "~~/copyright.config";
 
 export async function copyrightApi<T>(path: string, method = "GET", body?: unknown, wallet?: string): Promise<T> {
   const response = await fetch("/api/copyright/" + path, {
@@ -34,7 +36,7 @@ export function useWalletSession(enabled = true) {
   });
   return {
     wallet,
-    signedIn: Boolean(wallet && session.data?.wallet === wallet && chainId === hardhat.id),
+    signedIn: Boolean(wallet && session.data?.wallet === wallet && chainId === copyrightChain.id),
     session,
     chainId,
   };
@@ -50,8 +52,13 @@ export function WalletSession() {
   }, [wallet]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  if (!wallet) return <p>Kết nối ví để đăng nhập.</p>;
-  if (chainId !== hardhat.id) return <p>Chuyển ví sang mạng Hardhat local để đăng nhập.</p>;
+  if (!wallet) return <Notice title="Cần kết nối ví">Kết nối ví ở đầu trang để đăng nhập.</Notice>;
+  if (chainId !== copyrightChain.id)
+    return (
+      <Notice tone="warning" title="Kiểm tra mạng của ví">
+        Chuyển ví sang mạng {copyrightChain.name} để đăng nhập.
+      </Notice>
+    );
   if (session.isPending) return <p role="status">Đang kiểm tra phiên đăng nhập…</p>;
 
   async function changeSession() {
@@ -74,15 +81,32 @@ export function WalletSession() {
   }
 
   return (
-    <div className="space-y-2">
-      {signedIn && <p className="break-all text-sm">Đã đăng nhập bằng {wallet}</p>}
-      <button type="button" className="btn btn-outline btn-sm" disabled={busy} onClick={changeSession}>
-        {signedIn ? "Đăng xuất" : "Đăng nhập bằng ví"}
-      </button>
+    <div className="space-y-3">
+      <div className="bqs-session-row">
+        <div className="min-w-0">
+          <strong className="block">{signedIn ? "Đã đăng nhập bằng ví" : "Xác nhận đăng nhập"}</strong>
+          <p className="bqs-help">
+            {signedIn ? (
+              <Address address={wallet} chain={copyrightChain} size="base" onlyEnsOrAddress />
+            ) : (
+              "Ký thông điệp trong ví để mở quyền chỉnh sửa hồ sơ."
+            )}
+          </p>
+        </div>
+        <button
+          type="button"
+          className={`btn ${signedIn ? "btn-outline" : "btn-primary"} btn-sm`}
+          disabled={busy}
+          aria-busy={busy}
+          onClick={changeSession}
+        >
+          {busy ? "Đang xử lý…" : signedIn ? "Đăng xuất" : "Đăng nhập bằng ví"}
+        </button>
+      </div>
       {(error || session.error) && (
-        <p role="alert" className="text-error">
+        <Notice tone="error" role="alert" title="Không thể cập nhật phiên đăng nhập">
           {error || session.error?.message}
-        </p>
+        </Notice>
       )}
     </div>
   );

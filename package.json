@@ -51,6 +51,8 @@
     "test": "yarn hardhat:test && yarn test:frontend",
     "test:frontend": "node --experimental-strip-types --test \"packages/nextjs/utils/*.test.mjs\"",
     "test:copyright": "yarn workspace @se-2/nextjs test:copyright",
+    "testnet:export": "node scripts/export-sepolia.mjs",
+    "testnet:check": "yarn workspace @se-2/nextjs testnet:check",
     "test:files": "node --experimental-strip-types --test packages/nextjs/utils/workFiles.test.mjs",
     "vercel": "yarn workspace @se-2/nextjs vercel",
     "vercel:login": "yarn workspace @se-2/nextjs vercel:login",

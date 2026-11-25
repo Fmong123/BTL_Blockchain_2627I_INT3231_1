@@ -6,6 +6,7 @@ import { hardhat } from "viem/chains";
 import { Config, UsePublicClientReturnType, useBlockNumber, usePublicClient } from "wagmi";
 import { useSelectedNetwork } from "~~/hooks/scaffold-eth";
 import { useDeployedContractInfo } from "~~/hooks/scaffold-eth";
+import { readEventLogs } from "~~/utils/eventLogs";
 import { AllowedChainIds } from "~~/utils/scaffold-eth";
 import { replacer } from "~~/utils/scaffold-eth/common";
 import {
@@ -24,14 +25,21 @@ const getEvents = async (
     receiptData?: boolean;
   },
 ) => {
-  const logs = await publicClient?.getLogs({
-    address: getLogsParams.address,
-    fromBlock: getLogsParams.fromBlock,
-    toBlock: getLogsParams.toBlock,
-    args: getLogsParams.args,
-    event: getLogsParams.event,
-  });
-  if (!logs) return undefined;
+  if (!publicClient) return undefined;
+  const from = typeof getLogsParams.fromBlock === "bigint" ? getLogsParams.fromBlock : 0n;
+  const through =
+    typeof getLogsParams.toBlock === "bigint"
+      ? getLogsParams.toBlock
+      : await publicClient.getBlockNumber({ cacheTime: 0 });
+  const logs = await readEventLogs(from, through, (fromBlock, toBlock) =>
+    publicClient.getLogs({
+      address: getLogsParams.address,
+      fromBlock,
+      toBlock,
+      args: getLogsParams.args,
+      event: getLogsParams.event,
+    }),
+  );
 
   const finalEvents = await Promise.all(
     logs.map(async log => {

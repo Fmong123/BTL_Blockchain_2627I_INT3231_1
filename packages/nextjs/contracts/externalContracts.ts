@@ -1,3 +1,5 @@
+import { zeroAddress } from "viem";
+import { copyrightAbi, localDeployment, testnetDeployment } from "~~/copyright.config";
 import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 /**
@@ -11,6 +13,21 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
  *   },
  * } as const;
  */
-const externalContracts = {} as const;
+const externalContracts = {
+  31337: {
+    WorkRegistry: {
+      address: localDeployment?.address ?? zeroAddress,
+      deployedOnBlock: localDeployment?.deployedOnBlock ?? 0,
+      abi: copyrightAbi,
+    },
+  },
+  11155111: {
+    WorkRegistry: {
+      address: testnetDeployment?.address ?? zeroAddress,
+      deployedOnBlock: testnetDeployment?.deployedOnBlock ?? 0,
+      abi: copyrightAbi,
+    },
+  },
+} as const;
 
 export default externalContracts satisfies GenericContractsDeclaration;

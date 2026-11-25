@@ -10,6 +10,9 @@ export class ApiError extends Error {
 }
 
 export function appOrigin() {
+  if (process.env.NEXT_PUBLIC_COPYRIGHT_NETWORK === "sepolia" && !process.env.SIWE_ORIGIN) {
+    throw new ApiError(503, "Chưa cấu hình tên miền đăng nhập SIWE_ORIGIN cho Sepolia.");
+  }
   const url = new URL(process.env.SIWE_ORIGIN || "http://localhost:3000");
   if (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname))) {
     throw new Error("SIWE_ORIGIN must use HTTPS outside localhost");

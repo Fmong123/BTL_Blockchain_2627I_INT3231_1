@@ -10,6 +10,7 @@ import { WagmiProvider } from "wagmi";
 import { Footer } from "~~/components/Footer";
 import { Header } from "~~/components/Header";
 import { BlockieAvatar } from "~~/components/scaffold-eth";
+import { copyrightChain, copyrightDeployment } from "~~/copyright.config";
 import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 
 const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
@@ -17,7 +18,18 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
     <>
       <div className="bqs-shell">
         <Header />
-        <main className="relative flex flex-col flex-1">{children}</main>
+        <main className="relative flex flex-col flex-1">
+          {copyrightDeployment ? (
+            children
+          ) : (
+            <div className="bqs-page">
+              <div role="alert" className="alert alert-warning">
+                Ứng dụng chưa hoàn tất kết nối contract trên {copyrightChain.name}. Người quản trị cần hoàn tất triển
+                khai trước khi nhóm đăng ký tác phẩm.
+              </div>
+            </div>
+          )}
+        </main>
         <Footer />
       </div>
       <Toaster />

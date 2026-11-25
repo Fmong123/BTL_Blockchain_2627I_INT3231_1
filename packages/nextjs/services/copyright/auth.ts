@@ -18,7 +18,7 @@ export const signatureSchema = z
   .transform(value => value as Hex);
 const challengeLifetime = 5 * 60;
 const sessionLifetime = 8 * 60 * 60;
-type Login = { wallet?: string; expiresAt?: number };
+type Login = { wallet?: string; expiresAt?: number; chainId?: number };
 type Challenge = { message?: string; expiresAt?: number };
 
 async function cookie<T extends object>(name: string, ttl: number) {
@@ -36,7 +36,7 @@ const challengeCookie = () => cookie<Challenge>("bqs-challenge", challengeLifeti
 
 export async function requireWallet(request: Request) {
   const session = await loginSession();
-  if (!session.wallet || !session.expiresAt || session.expiresAt <= Date.now()) {
+  if (!session.wallet || !session.expiresAt || session.expiresAt <= Date.now() || session.chainId !== chainId) {
     throw new ApiError(401, "Hãy đăng nhập bằng ví.");
   }
   const requested = addressSchema.safeParse(request.headers.get("x-wallet"));
@@ -98,6 +98,7 @@ export async function verifyChallenge(message: string, signature: Hex) {
   if (!used) throw new ApiError(401, "Yêu cầu đăng nhập đã dùng hoặc hết hạn.");
   const session = await loginSession();
   session.wallet = parsed.address.toLowerCase();
+  session.chainId = chainId;
   session.expiresAt = Date.now() + sessionLifetime * 1000;
   await session.save();
   challenge.destroy();

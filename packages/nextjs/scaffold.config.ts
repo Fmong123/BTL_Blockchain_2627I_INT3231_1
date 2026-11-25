@@ -1,3 +1,4 @@
+import { copyrightChain } from "./copyright.config";
 import * as chains from "viem/chains";
 
 export type BaseConfig = {
@@ -15,7 +16,7 @@ export const DEFAULT_ALCHEMY_API_KEY = "IZYEU2cWBgnFmgiTAgpWD";
 
 const scaffoldConfig = {
   // The networks on which your DApp is live
-  targetNetworks: [chains.hardhat],
+  targetNetworks: [copyrightChain],
   // The interval at which your front-end polls the RPC servers for new data (it has no effect if you only target the local network (default is 4000))
   pollingInterval: 3000,
   // This is ours Alchemy's default API key.
@@ -26,6 +27,7 @@ const scaffoldConfig = {
   // If you want to use a different RPC for a specific network, you can add it here.
   // The key is the chain ID, and the value is the HTTP RPC URL
   rpcOverrides: {
+    [copyrightChain.id]: process.env.NEXT_PUBLIC_COPYRIGHT_RPC_URL || copyrightChain.rpcUrls.default.http[0],
     // Example:
     // [chains.mainnet.id]: "https://mainnet.rpc.buidlguidl.com",
   },
