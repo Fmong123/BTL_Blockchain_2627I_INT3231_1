@@ -10,6 +10,7 @@
 
 # next.js
 /.next/
+/.next-*/
 /out/
 .vercel
 
@@ -32,6 +33,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.sepolia.local
 
 # typescript
 *.tsbuildinfo
