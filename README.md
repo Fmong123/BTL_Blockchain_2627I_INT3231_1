@@ -1,8 +1,17 @@
 # Bản Quyền Số — ghi nhận và quản lý quyền sử dụng tác phẩm
 
-Đồ án blockchain cho nhóm 2–3 người, phát triển từ **Scaffold-ETH 2** và demo đăng ký/xác minh hiện có. Luồng nghiệp vụ: **đăng ký → xác minh → cấp giấy phép có hạn → kiểm tra → thu hồi hoặc cấp lại**.
+Đồ án blockchain cho nhóm hai người, phát triển từ **Scaffold-ETH 2** và demo đăng ký/xác minh hiện có. Luồng nghiệp vụ: **đăng ký → xác minh → cấp giấy phép có hạn → kiểm tra → thu hồi hoặc cấp lại**.
 
 Hỗ trợ ảnh JPG/JPEG, PNG, WebP (20 MiB), PDF (20 MiB), MP3/WAV (100 MiB). File được tính SHA-256 trong trình duyệt; blockchain lưu hash và metadata. Người dùng tự giữ file gốc. Logo, tài liệu, bản vẽ và bản ghi nhạc là các tình huống minh họa; chưa hỗ trợ video.
+
+## Phạm vi local và phương án triển khai
+
+Với thời hạn của nhóm hai người, ưu tiên demo local. Có hai mức triển khai để lựa chọn:
+
+- **Demo theo phiên:** Hardhat hiện có, PostgreSQL local và Next.js. Giữ node mở trong buổi demo; khởi động lại node cần deploy và tạo lại dữ liệu blockchain.
+- **Local giữ dữ liệu blockchain qua lần khởi động:** phương án tiếp theo cần chọn node hỗ trợ lưu trạng thái và bổ sung quy trình khôi phục/kiểm chứng. Repo hiện chưa triển khai mức này; PostgreSQL lưu bền riêng không làm dữ liệu Hardhat trong RAM tồn tại sau khi tắt node.
+
+File gốc vẫn do người dùng giữ; repo chưa có kho lưu file gốc. Nếu cần triển khai dùng chung sau này, có hướng dẫn tùy chọn [Sepolia + Vercel + PostgreSQL cloud](docs/TESTNET_DEPLOYMENT.md). Cloud không phải điều kiện để chạy hoặc nghiệm thu bản local. Frontend và API dùng chung `NEXT_PUBLIC_COPYRIGHT_NETWORK`; cấu hình Sepolia thiếu sẽ báo chưa triển khai, không dùng địa chỉ local thay thế.
 
 ## Chạy local
 
@@ -35,7 +44,7 @@ Mở địa chỉ Next.js thông báo, mặc định http://localhost:3000. Mạ
 3. Đặt `SIWE_ORIGIN` đúng địa chỉ trình duyệt đang mở, gồm scheme, tên máy và cổng. Mặc định `http://localhost:3000`. `COPYRIGHT_RPC_URL` phải trỏ tới chính Hardhat mà frontend đang dùng. Sau khi sửa cấu hình, khởi động lại frontend.
 4. Tại root, chạy `yarn db:migrate` rồi `yarn db:seed` nếu cần hồ sơ mẫu. Migration có thể chạy lại. Seed chỉ chạy với database local và giữ các hồ sơ đã có.
 
-Nếu chạy trên PowerShell và Yarn bị chặn, thay `yarn` bằng `yarn.cmd`. Có thể dùng một PostgreSQL UTF-8 đã có thay Compose. Hồ sơ, đăng nhập và điều khoản cần Next.js có server runtime. Luồng đăng ký, xác minh và cấp/thu hồi V1 vẫn chạy được khi chưa cấu hình database.
+Nếu chạy trên PowerShell và Yarn bị chặn, thay `yarn` bằng `yarn.cmd`. Có thể dùng một PostgreSQL UTF-8 đã có thay Compose. Hồ sơ, đăng nhập và điều khoản cần Next.js có server runtime. Luồng đăng ký mới và cấp phép trên giao diện cần PostgreSQL và đăng nhập ví để lưu hồ sơ/điều khoản trước khi gửi giao dịch. Tra cứu blockchain và thu hồi vẫn hoạt động khi API hồ sơ chưa sẵn sàng.
 
 ## Tạo bộ dữ liệu demo
 
@@ -56,16 +65,20 @@ Script chỉ dùng node local và từ chối chain ID khác 31337. Script sinh 
 
 Giấy phép #1 cho ảnh còn hiệu lực, #2 cho audio đã thu hồi, #3 cho PDF hết hạn. Script tăng thời gian chain **61 giây** để có ngay trạng thái hết hạn. File gốc có thể chọn lại ở trang xác minh; âm thanh là WAV PCM 440 Hz dài 0,25 giây, ảnh là PNG 1 pixel, PDF tối giản, đều do code sinh.
 
-Seed dừng nếu contract đã có giấy phép để giữ dữ liệu hiện tại. Muốn tạo lại bộ mẫu: dừng/chạy lại `yarn chain`, chạy `yarn deploy` và `yarn demo:seed`. Tài khoản/khóa Hardhat chỉ dùng thử nghiệm, không dùng trên mạng thật.
+Seed dừng nếu contract đã có giấy phép để giữ dữ liệu hiện tại. **Hardhat local lưu dữ liệu trong RAM: dừng/khởi động lại node sẽ mất các đăng ký và giấy phép cũ.** Chỉ tạo lại bộ mẫu trên một node kiểm thử riêng; không reset node người dùng để kiểm tra giao diện. Tài khoản/khóa Hardhat chỉ dùng thử nghiệm local, không dùng làm ví deploy Sepolia hay mạng thật.
 
 ## Sử dụng
 
-1. **Đăng ký:** kết nối ví đúng mạng, chọn file, nhập tên/mô tả và xác nhận giao dịch. Chỉ báo thành công khi receipt thành công. File trùng bị chặn dù dùng ví khác.
+1. **Đăng ký:** kết nối ví đúng mạng → chọn tệp → nhập đầy đủ tên, tóm tắt, ngày hoàn thành, người sáng tác, chủ sở hữu và căn cứ quyền → kiểm tra hồ sơ → xác nhận kê khai/công khai và đăng nhập SIWE → lưu hồ sơ nháp chuẩn bị → ký giao dịch → đối chiếu receipt và hoàn tất hồ sơ. Mỗi nội dung chuẩn bị khác nhau có mã `preparationId` riêng; bước hoàn tất dùng đúng mã này để tránh lấy nhầm hồ sơ giữa các tab. Sau receipt, server đối chiếu ví/hash/metadata và lưu hồ sơ công khai. Nếu lưu lỗi hoặc chờ giao dịch bị ngắt, dùng **Đối chiếu giao dịch và lưu hồ sơ**; không đăng ký lần hai. Có thể khôi phục bằng mã giao dịch, hash tệp và mã hồ sơ chuẩn bị tại cuối trang; khôi phục cũ không có mã chỉ tự chọn khi có đúng một hồ sơ nháp phù hợp. File trùng bị chặn dù dùng ví khác.
 2. **Tác phẩm:** tìm theo tên/ví/hash, lọc loại hoặc ví của tôi, phân trang 10 bản ghi. Tìm/lọc áp dụng trên toàn tập bản ghi đã đọc.
 3. **Xác minh:** chọn file hoặc nhập hash; không cần ví. Nút Xem bản ghi mở `/works/verify?hash=...`, giữ tương thích đường dẫn bàn giao.
-4. **Cấp phép:** trong chi tiết, ví đăng ký nhập người nhận và hạn theo giờ Việt Nam, mặc định 30 ngày. Đăng nhập SIWE trước khi cấp để lưu bản điều khoản v2. Nếu giao dịch đã thành công nhưng lưu điều khoản lỗi, mở thẻ giấy phép và gắn lại điều khoản. Ví nhận đăng nhập, đọc bản đã lưu rồi ký chấp thuận.
+4. **Cấp phép:** trong chi tiết, ví đăng ký nhập người nhận và hạn theo giờ Việt Nam, mặc định 30 ngày. Đăng nhập SIWE, bấm **Kiểm tra giấy phép**, xác nhận thẩm quyền rồi ký để lưu bản điều khoản v2. Nếu giao dịch đã thành công nhưng lưu điều khoản lỗi, mở thẻ giấy phép và gắn lại điều khoản. Ví nhận đăng nhập, đọc bản đã lưu, đánh dấu đồng ý rồi ký chấp thuận.
 5. **Quản lý của tôi:** xem tác phẩm, giấy phép đã nhận và vào Hồ sơ của tôi để tạo hồ sơ tác giả hoặc tổ chức. Trong chi tiết tác phẩm, ví đăng ký có thể bổ sung vai trò, căn cứ quyền và liên kết YouTube/Spotify. Các trường công khai được gắn nhãn tự khai.
 6. **Thu hồi:** ví đăng ký xác nhận thu hồi; người nhận thấy trạng thái cập nhật. Sau hết hạn/thu hồi, cấp lại sinh mã mới và giữ lịch sử.
+7. **Chia sẻ:** trong chi tiết tác phẩm, mở Chia sẻ trang xác minh để lấy QR hoặc sao chép liên kết. Người nhận không cần ví để tra cứu. URL localhost chỉ mở được trên máy đang chạy app.
+8. **In hoặc tải giấy phép:** bấm Tra cứu / In giấy phép trên thẻ để mở `/licenses/<id>`, rồi **In / Tải PDF** → **In giấy phép** (hộp thoại in) hoặc **Tải PDF về máy** (file `giay-phep-<id>.pdf`). Cả hai cập nhật blockchain và điều khoản trước khi xuất. PDF A4 có font tiếng Việt, thời hạn, trạng thái tại block đối chiếu, điều khoản/chấp thuận và QR kiểm tra lại. QR gắn giao dịch, block và contract để không nhầm mã giấy phép sau reset chain. Giấy phép có thể bị thu hồi hoặc hết hạn sau khi xuất.
+
+**Hiệu lực trên blockchain và chấp thuận điều khoản là hai trạng thái độc lập.** WorkRegistry V1 không yêu cầu người nhận ký chấp thuận để giấy phép có hiệu lực. Chữ ký chấp thuận lưu trong PostgreSQL, không sửa trạng thái contract. Lỗi API không được diễn giải là chưa ký; giao diện báo không xác định được nội dung/tình trạng chấp thuận.
 
 Chỉ ví đăng ký được cấp/thu hồi, admin không làm thay. Mỗi cặp tác phẩm–người nhận chỉ có một giấy phép còn hiệu lực. Không cấp cho ví rỗng hoặc chính mình. Khi pause, đăng ký/cấp mới bị chặn; đọc và thu hồi vẫn hoạt động.
 
@@ -99,7 +112,7 @@ yarn lint
 yarn next:build
 ```
 
-`yarn test` chạy test contract và quy tắc frontend. Có thể chạy riêng `yarn hardhat:test`, `yarn test:frontend` hoặc test file gốc `yarn test:files`. Test contract không cần giữ node local mở. Test thời gian dùng công cụ Hardhat, không chờ thực tế. CI cài dependency theo lockfile, test, chờ RPC, deploy/seed, kiểm tra kiểu, lint và build.
+`yarn test` chạy test contract và quy tắc frontend, gồm liên kết chia sẻ và mã giấy phép. Có thể chạy riêng `yarn hardhat:test`, `yarn test:frontend` hoặc test file gốc `yarn test:files`. Test contract không cần giữ node local mở. Test thời gian dùng công cụ Hardhat, không chờ thực tế. CI trên `main`, `ngyn_branch`, `phong_branch`, nhánh `codex/**` và PR vào main/ngyn_branch/phong_branch cài dependency theo lockfile, test, chờ RPC, deploy/seed, migrate PostgreSQL service, kiểm tra kiểu, lint, build và chạy `test:copyright` trên app production local. `scripts/wait-for-service.mjs` giới hạn thời gian chờ RPC/API; log hai dịch vụ được in nếu CI lỗi.
 
 Kết quả chạy thực tế và phạm vi kiểm chứng: [docs/VERIFICATION.md](docs/VERIFICATION.md).
 

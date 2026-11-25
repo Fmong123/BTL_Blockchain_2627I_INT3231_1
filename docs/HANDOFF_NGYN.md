@@ -17,6 +17,8 @@ Sau khi xác nhận LicenseGranted, hệ thống lưu nội dung v2 chuẩn hóa
 
 ## Tái lập và nghiệm thu
 
+Ưu tiên bàn giao local cho nhóm hai người. Mức demo theo phiên dùng Hardhat hiện có: giữ node mở; dừng node làm mất đăng ký/giấy phép trên chain, dù PostgreSQL còn dữ liệu. Mức local giữ trạng thái blockchain qua lần khởi động là đề xuất cần triển khai và kiểm chứng riêng. Repo chưa có kho lưu file gốc và chưa có chain local lưu bền. Sepolia/Vercel/PostgreSQL cloud là lựa chọn mở rộng, không phải điều kiện nghiệm thu local.
+
 1. Chuẩn bị PostgreSQL UTF-8 và biến cấu hình theo README. Chạy migration và seed hồ sơ.
 2. Cài dependency từ lockfile, chạy Hardhat local, deploy contract rồi seed ảnh/WAV/PDF.
 3. Chạy Next.js, mở đúng SIWE_ORIGIN. Dùng các ví thử nghiệm trên chain này.
@@ -39,14 +41,18 @@ Sau khi xác nhận LicenseGranted, hệ thống lưu nội dung v2 chuẩn hóa
 
 ## Kịch bản trình bày 6 phút
 
+Từ đợt bổ sung 23/11, chi tiết tác phẩm có QR/liên kết xác minh; các thẻ giấy phép dẫn tới trang tra cứu/in công khai. Menu **In / Tải PDF** phân biệt **In giấy phép** (hộp thoại in) và **Tải PDF về máy** (tạo/tải file PDF trực tiếp trong trình duyệt). Khi trình bày, mở một bản xuất và chỉ ra block đối chiếu, hai trạng thái hiệu lực/chấp thuận và QR kiểm tra lại. Bản xuất không giữ nguyên hiệu lực sau thu hồi/hết hạn. Liên kết localhost chỉ dùng trên máy đang chạy ứng dụng. Slide/video đã được gỡ khỏi repo ở commit 426f34a; nhóm chuẩn bị riêng nếu cần.
+
 | Thời gian | Màn hình | Thao tác |
 | --- | --- | --- |
 | 0:00–0:45 | Quản lý của tôi → Hồ sơ của tôi | Ví A ký SIWE, tạo hồ sơ và bật công khai tên/vai trò |
-| 0:45–1:45 | Đăng ký | Chọn PNG hoặc WAV mẫu chưa đăng ký, xem SHA-256, ký giao dịch và mở bản ghi |
-| 1:45–2:45 | Chi tiết tác phẩm | Thêm tác giả, đơn vị đại diện, căn cứ quyền và liên kết trải nghiệm. Mở liên kết trong tab mới |
+| 0:45–1:45 | Đăng ký | Chọn PNG hoặc WAV mẫu chưa đăng ký, xem SHA-256; nhập đủ metadata, tác giả/chủ sở hữu và căn cứ quyền; kiểm tra, xác nhận kê khai/công khai, lưu nháp rồi ký giao dịch và hoàn tất hồ sơ |
+| 1:45–2:45 | Chi tiết tác phẩm | Đối chiếu hồ sơ vừa đăng ký, bổ sung thông tin tùy chọn và liên kết trải nghiệm. Mở liên kết trong tab mới |
 | 2:45–3:15 | Xác minh | Mở cửa sổ không có ví, chọn lại cùng file hoặc nhập hash và đối chiếu bản ghi |
 | 3:15–4:15 | Giấy phép tác phẩm | Ví A đọc mẫu v2, nhập ví B và hạn, ký cấp giấy phép |
 | 4:15–5:00 | Giấy phép đã nhận | Ví B đăng nhập, mở điều khoản đã lưu và ký chấp thuận |
 | 5:00–6:00 | Chi tiết tác phẩm | Ví A thu hồi và cấp lại, đối chiếu ID mới và lịch sử chấp thuận cũ |
+
+Hồ sơ đăng ký được chuẩn bị trước giao dịch, có `preparationId` riêng theo nội dung để tránh ghi đè giữa các tab. Sau receipt, hoàn tất bằng đúng mã đã chuẩn bị. Nếu lưu hồ sơ lỗi, giữ mã giao dịch/hash/mã chuẩn bị và dùng chức năng đối chiếu/khôi phục; không đăng ký lại. Khôi phục cũ không có mã chỉ tự chọn khi có đúng một nháp phù hợp.
 
 Khi trình bày, phân biệt dữ liệu tự khai, bằng chứng giao dịch và trạng thái chấp thuận. Đăng ký hash chỉ là bản ghi trong hệ thống. Dự án dùng blockchain local, không lưu file gốc và chưa triển khai mua bán, NFT, thanh toán, xác minh danh tính pháp lý hay quy trình tranh chấp.

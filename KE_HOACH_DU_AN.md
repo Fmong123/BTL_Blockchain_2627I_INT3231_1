@@ -53,11 +53,13 @@ Nhóm 2 người chia phần C cho A/B. Chốt interface trước khi ghép UI; 
 
 ## Cải tiến sau khi ổn định phiên bản này
 
+Cập nhật 23/11/2026: nhánh ngyn_branch đã có SIWE, hồ sơ cá nhân/tổ chức, phân nhóm nội dung, metadata tác phẩm và điều khoản v2 có dấu vết chấp thuận. Đợt tiếp nối bổ sung QR/liên kết chia sẻ, trang tra cứu/in giấy phép và CI kiểm thử API với PostgreSQL. Phép đo WAV 20/50/100 MiB đã được ghi tại `docs/HANDOFF_NGYN.md`; không coi các mục này là tính năng chưa có.
+
 Theo thứ tự lợi ích/chi phí cho nhóm nhỏ:
 
-1. QR/liên kết chia sẻ trang xác minh và bản in thông tin giấy phép; tận dụng qrcode.react sẵn có. Bản in cần dẫn về trạng thái hiện tại vì quyền có thể bị thu hồi.
-2. Tự động hóa các ca giao diện bằng Playwright; bổ sung phép đo file lớn và Web Worker nếu có bằng chứng nghẽn UI.
-3. Phân nhóm nội dung thiết kế/logo, tài liệu, bản ghi nhạc riêng với loại file; chọn mẫu điều khoản có phiên bản và dấu vết thay đổi.
+1. Nghiệm thu trên máy thành viên khác với extension ví thật; chạy lại luồng cấp/chấp thuận/thu hồi/cấp lại và xác nhận CI trên GitHub.
+2. Đưa các ca giao diện đã kiểm tra bằng trình duyệt thành bộ Playwright chạy thường xuyên; chỉ thêm Web Worker khi phép đo trên máy mục tiêu cho thấy nghẽn UI.
+3. Mở rộng lựa chọn mẫu điều khoản theo loại nội dung nếu có yêu cầu cụ thể; giữ bản đã ký bất biến và quy tắc tương thích V1.
 4. Testnet dùng chung để hai máy xem cùng dữ liệu. Cần thay các giả định local, kiểm tra RPC giới hạn và cấu hình mạng toàn bộ stack trước khi triển khai.
 5. IPFS cho bản xem trước/file được phép công khai, có pinning và quy tắc công bố; CID lưu riêng với SHA-256. Đây là thay đổi phạm vi, không phải phần đang thiếu của bản local.
 6. Indexer như Ponder khi lượng event lớn hoặc chạy mạng công khai; vẫn giữ contract làm nguồn quyết định quyền.
