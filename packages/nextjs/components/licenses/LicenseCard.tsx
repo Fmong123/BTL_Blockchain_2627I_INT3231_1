@@ -4,13 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { Address } from "@scaffold-ui/components";
 import { LicenseTermsPanel } from "~~/components/copyright/LicenseTermsPanel";
+import { transactionUrl } from "~~/copyright.config";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { LICENSE_STATUS_LABELS, License, formatVietnamTimestamp, getLicenseStatus } from "~~/utils/licenses";
+import { licensePath } from "~~/utils/shareLinks";
 
 export function LicenseCard({
   license,
   chainTimestamp,
   grantHash,
+  grantBlockHash,
   revokeHash,
   canRevoke = false,
   busy = false,
@@ -19,6 +22,7 @@ export function LicenseCard({
   license: License;
   chainTimestamp?: bigint;
   grantHash?: `0x${string}` | null;
+  grantBlockHash?: `0x${string}`;
   revokeHash?: `0x${string}` | null;
   canRevoke?: boolean;
   busy?: boolean;
@@ -33,6 +37,7 @@ export function LicenseCard({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="card-title">Giấy phép #{license.id.toString()}</h3>
           <span
+            aria-label={`Hiệu lực trên blockchain: ${status ? LICENSE_STATUS_LABELS[status] : "Chưa xác định"}`}
             className={`badge ${status === "valid" ? "badge-success" : status === "revoked" ? "badge-error" : status === "expired" ? "badge-warning" : "badge-outline"}`}
           >
             {status ? LICENSE_STATUS_LABELS[status] : "Chờ thời gian blockchain"}
@@ -65,55 +70,61 @@ export function LicenseCard({
         </Link>
         <div className="space-y-2 text-xs">
           {grantHash && (
-            <Link className="link block break-all" href={`/blockexplorer/transaction/${grantHash}`}>
+            <Link className="link block break-all" href={transactionUrl(grantHash)}>
               Giao dịch cấp: {grantHash}
             </Link>
           )}
           {revokeHash && (
-            <Link className="link block break-all" href={`/blockexplorer/transaction/${revokeHash}`}>
+            <Link className="link block break-all" href={transactionUrl(revokeHash)}>
               Giao dịch thu hồi: {revokeHash}
             </Link>
           )}
         </div>
         {grantHash && (
-          <LicenseTermsPanel key={grantHash} license={license} tx={grantHash} active={status === "valid"} />
+          <LicenseTermsPanel
+            key={`${grantHash}:${grantBlockHash}`}
+            license={license}
+            tx={grantHash}
+            grantBlockHash={grantBlockHash}
+            active={status === "valid"}
+          />
         )}
-        {canRevoke &&
-          !license.revoked &&
-          (confirm ? (
-            <div
-              role="group"
-              aria-label={`Xác nhận thu hồi giấy phép ${license.id}`}
-              className="rounded-box border border-warning p-4"
-            >
-              <p className="mt-0 text-sm">
-                Thu hồi giấy phép #{license.id.toString()}? Thao tác được ghi công khai và không thể hoàn tác. Bạn có
-                thể cấp giấy phép mới sau đó.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  className="btn btn-error btn-sm"
-                  disabled={busy}
-                  onClick={async () => {
-                    if (await onRevoke?.()) setConfirm(false);
-                  }}
-                >
-                  {busy ? "Đang xác nhận…" : "Xác nhận thu hồi"}
-                </button>
-                <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setConfirm(false)}>
-                  Hủy
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              className="btn btn-outline btn-error btn-sm self-start"
-              disabled={busy}
-              onClick={() => setConfirm(true)}
-            >
+        <div className="bqs-actions bqs-license-actions">
+          <Link className="btn btn-outline btn-sm" href={licensePath(license.id)}>
+            Tra cứu / In giấy phép
+          </Link>
+          {canRevoke && !license.revoked && !confirm && (
+            <button className="btn btn-outline btn-error btn-sm" disabled={busy} onClick={() => setConfirm(true)}>
               Thu hồi giấy phép
             </button>
-          ))}
+          )}
+        </div>
+        {canRevoke && !license.revoked && confirm && (
+          <div
+            role="group"
+            aria-label={`Xác nhận thu hồi giấy phép ${license.id}`}
+            className="rounded-box border border-warning p-4"
+          >
+            <p className="mt-0 text-sm">
+              Thu hồi giấy phép #{license.id.toString()}? Thao tác được ghi công khai và không thể hoàn tác. Bạn có thể
+              cấp giấy phép mới sau đó.
+            </p>
+            <div className="bqs-actions">
+              <button className="btn btn-outline btn-sm" disabled={busy} onClick={() => setConfirm(false)}>
+                Hủy
+              </button>
+              <button
+                className="btn btn-error btn-sm"
+                disabled={busy}
+                onClick={async () => {
+                  if (await onRevoke?.()) setConfirm(false);
+                }}
+              >
+                {busy ? "Đang xác nhận…" : "Xác nhận thu hồi"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </article>
   );

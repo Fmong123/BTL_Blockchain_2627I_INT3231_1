@@ -2,31 +2,32 @@
 
 import { Address } from "@scaffold-ui/components";
 import { zeroAddress } from "viem";
-import { hardhat } from "viem/chains";
 import { WorkDetailsPanel } from "~~/components/copyright/WorkDetailsPanel";
 import { WorkLicenses } from "~~/components/licenses/WorkLicenses";
 import { WORK_CATEGORIES, WorkArt } from "~~/components/works/WorkArt";
 import { WorkHash } from "~~/components/works/WorkHash";
+import { WorkSharePanel } from "~~/components/works/WorkSharePanel";
+import { copyrightChain } from "~~/copyright.config";
 import { useDeployedContractInfo, useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 export function WorkRecord({ fileHash, headingLevel = 2 }: { fileHash: `0x${string}`; headingLevel?: 1 | 2 }) {
   const Heading = headingLevel === 1 ? "h1" : "h2";
   const { data: contract, isLoading: isContractLoading } = useDeployedContractInfo({
     contractName: "WorkRegistry",
-    chainId: hardhat.id,
+    chainId: copyrightChain.id,
   });
   const { data: work, error } = useScaffoldReadContract({
     contractName: "WorkRegistry",
     functionName: "works",
     args: [fileHash],
-    chainId: hardhat.id,
+    chainId: copyrightChain.id,
     query: { retry: false },
   });
   if (error || (!isContractLoading && !contract))
     return (
       <div role="alert" className="alert alert-error flex flex-wrap">
         <Heading className="sr-only">Không đọc được tác phẩm</Heading>
-        <span>Không đọc được blockchain. Kiểm tra mạng local và triển khai contract theo README.</span>
+        <span>Không đọc được blockchain. Kiểm tra kết nối mạng và cấu hình contract theo README.</span>
         <button type="button" className="btn btn-sm" onClick={() => window.location.reload()}>
           Thử lại
         </button>
@@ -60,7 +61,7 @@ export function WorkRecord({ fileHash, headingLevel = 2 }: { fileHash: `0x${stri
     );
   return (
     <>
-      <section className="bqs-work-detail" aria-label="Kết quả xác minh">
+      <section className="bqs-work-detail card border border-base-300 bg-base-100" aria-label="Kết quả xác minh">
         <WorkArt workType={workType} title={work[2]} />
         <div className="min-w-0">
           <div className="bqs-work-category">{WORK_CATEGORIES[workType]}</div>
@@ -69,7 +70,7 @@ export function WorkRecord({ fileHash, headingLevel = 2 }: { fileHash: `0x${stri
           <dl className="bqs-work-data">
             <dt>Ví đăng ký</dt>
             <dd>
-              <Address address={work[0]} chain={hardhat} size="base" onlyEnsOrAddress />
+              <Address address={work[0]} chain={copyrightChain} size="base" onlyEnsOrAddress />
             </dd>
             <dt>Ngày ghi nhận</dt>
             <dd>{new Date(Number(work[1]) * 1000).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}</dd>
@@ -83,6 +84,7 @@ export function WorkRecord({ fileHash, headingLevel = 2 }: { fileHash: `0x${stri
           </span>
         </div>
       </section>
+      <WorkSharePanel fileHash={fileHash} />
       <WorkDetailsPanel key={fileHash} fileHash={fileHash} registrant={work[0]} />
       <WorkLicenses fileHash={fileHash} registrant={work[0]} />
     </>

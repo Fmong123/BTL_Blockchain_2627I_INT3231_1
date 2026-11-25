@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
 import { isAddressEqual } from "viem";
 import { useAccount } from "wagmi";
+import { Notice } from "~~/components/copyright/Notice";
 import { copyrightApi, useWalletSession } from "~~/components/copyright/WalletSession";
 import { GrantLicenseForm } from "~~/components/licenses/GrantLicenseForm";
 import { LicenseCard } from "~~/components/licenses/LicenseCard";
@@ -58,7 +59,11 @@ function WorkLicensesForAccount({ fileHash, registrant }: { fileHash: `0x${strin
     <section aria-label="Giấy phép sử dụng" className="mt-6 space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="m-0 text-lg font-semibold">Giấy phép sử dụng</h2>
-        <button className="btn btn-ghost btn-sm" disabled={actions.busy} onClick={() => void refresh().catch(() => {})}>
+        <button
+          className="btn btn-outline btn-sm"
+          disabled={actions.busy}
+          onClick={() => void refresh().catch(() => {})}
+        >
           Làm mới
         </button>
       </div>
@@ -92,17 +97,17 @@ function WorkLicensesForAccount({ fileHash, registrant }: { fileHash: `0x${strin
             </div>
           )}
           {address && !correctNetwork && (
-            <div role="alert" className="alert alert-warning">
+            <Notice role="alert" tone="warning">
               Chuyển ví sang {targetNetwork.name} (Chain ID {targetNetwork.id}) để thao tác.
-            </div>
+            </Notice>
           )}
           {isRegistrant && pause.data === true && (
-            <div role="status" className="alert alert-warning">
+            <Notice role="status" tone="warning">
               Đang tạm dừng cấp mới. Bạn vẫn có thể thu hồi giấy phép đã cấp.
-            </div>
+            </Notice>
           )}
           {(clock.error || pause.error) && (
-            <div role="alert" className="alert alert-error flex flex-wrap">
+            <Notice role="alert" tone="error">
               <span>
                 Không đọc được {clock.error ? "thời gian blockchain" : "trạng thái tạm dừng"}.{" "}
                 {getParsedError(clock.error || pause.error)}
@@ -110,25 +115,25 @@ function WorkLicensesForAccount({ fileHash, registrant }: { fileHash: `0x${strin
               <button className="btn btn-sm" onClick={() => void refresh().catch(() => {})}>
                 Thử lại
               </button>
-            </div>
+            </Notice>
           )}
           {actions.error && (
-            <div role="alert" className="alert alert-error break-words">
+            <Notice role="alert" tone="error">
               Giao dịch chưa thành công: {actions.error}
-            </div>
+            </Notice>
           )}
           {actions.txHash && (
-            <div role="status" className="alert alert-success block">
+            <Notice role="status" tone="success">
               <p className="mt-0 font-semibold">Giao dịch giấy phép đã được xác nhận.</p>
               <Link className="link break-all text-xs font-mono" href={`/blockexplorer/transaction/${actions.txHash}`}>
                 {actions.txHash}
               </Link>
-            </div>
+            </Notice>
           )}
           {actions.refreshWarning && (
-            <div role="alert" className="alert alert-warning">
+            <Notice role="alert" tone="warning">
               {actions.refreshWarning}
-            </div>
+            </Notice>
           )}
         </div>
         <div className="bqs-license-panel">
@@ -139,12 +144,12 @@ function WorkLicensesForAccount({ fileHash, registrant }: { fileHash: `0x${strin
             )}
           </h3>
           {history.error ? (
-            <div role="alert" className="alert alert-error flex flex-wrap">
+            <Notice role="alert" tone="error">
               <span>Không tải được giấy phép: {getParsedError(history.error)}</span>
               <button className="btn btn-sm" onClick={() => void refresh().catch(() => {})}>
                 Thử lại
               </button>
-            </div>
+            </Notice>
           ) : history.isLoading ? (
             <p role="status" className="bqs-sub">
               Đang đọc giấy phép trên blockchain…
@@ -160,6 +165,7 @@ function WorkLicensesForAccount({ fileHash, registrant }: { fileHash: `0x${strin
                 license={license}
                 chainTimestamp={chainTimestamp}
                 grantHash={history.grantEvents.find(event => event.args.licenseId === license.id)?.transactionHash}
+                grantBlockHash={history.grantEvents.find(event => event.args.licenseId === license.id)?.blockHash}
                 revokeHash={history.revokeEvents.find(event => event.args.licenseId === license.id)?.transactionHash}
                 canRevoke={canRevoke}
                 busy={actions.busy}
