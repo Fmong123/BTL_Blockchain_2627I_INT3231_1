@@ -8,6 +8,20 @@
       "when": 1795189250517,
       "tag": "0000_unusual_sister_grimm",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795538773908,
+      "tag": "0001_conscious_fallen_one",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795583027592,
+      "tag": "0002_registration_preparations",
+      "breakpoints": true
     }
   ]
 }

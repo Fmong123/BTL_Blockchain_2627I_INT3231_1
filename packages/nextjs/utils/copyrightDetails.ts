@@ -9,6 +9,7 @@ export const hashSchema = z
   .regex(/^0x[0-9a-fA-F]{64}$/)
   .transform(value => value.toLowerCase() as Address);
 export type Address = `0x${string}`;
+export const preparationIdSchema = z.union([hashSchema, z.literal("legacy")]);
 const short = z.string().trim().max(120);
 const detail = z.string().trim().max(500);
 const optionalDate = z.union([z.literal(""), z.iso.date()]);
@@ -79,3 +80,43 @@ export const workDetailsSchema = z.strictObject({
 
 export type Profile = z.infer<typeof profileSchema>;
 export type WorkDetails = z.infer<typeof workDetailsSchema>;
+
+export const registrationSchema = z
+  .strictObject({
+    fileHash: hashSchema,
+    title: z
+      .string()
+      .trim()
+      .min(1, "Nhập tên tác phẩm.")
+      .refine(value => new TextEncoder().encode(value).length <= 256, "Tên tác phẩm quá dài."),
+    description: z
+      .string()
+      .trim()
+      .min(1, "Nhập tóm tắt nội dung tác phẩm.")
+      .refine(value => new TextEncoder().encode(value).length <= 2048, "Tóm tắt quá dài."),
+    workType: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+    details: workDetailsSchema,
+    rightsConfirmed: z.literal(true, { error: "Cần xác nhận thẩm quyền và trách nhiệm kê khai." }),
+    publicConfirmed: z.literal(true, { error: "Cần xác nhận phạm vi công khai thông tin." }),
+  })
+  .superRefine(({ details }, ctx) => {
+    const issue = (field: string, message: string) =>
+      ctx.addIssue({ code: "custom", path: ["details", field], message });
+    if (!details.creationDate) issue("creationDate", "Nhập ngày hoàn thành / sáng tạo tác phẩm.");
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    if (details.creationDate > today || details.publicationDate > today)
+      issue("creationDate", "Ngày sáng tạo / công bố không được ở tương lai.");
+    if (details.publicationDate && details.publicationDate < details.creationDate)
+      issue("publicationDate", "Ngày công bố phải từ ngày hoàn thành tác phẩm trở đi.");
+    for (const role of ["Người sáng tác", "Chủ sở hữu quyền"]) {
+      if (!details.parties.some(party => party.role === role))
+        issue("parties", "Khai đủ người sáng tác và chủ sở hữu quyền; có thể là cùng một người.");
+    }
+  });
+
+export type Registration = z.infer<typeof registrationSchema>;

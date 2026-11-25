@@ -1,4 +1,24 @@
 import { boolean, integer, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import type { Registration } from "~~/utils/copyrightDetails";
+
+export const registrationDrafts = pgTable(
+  "registration_drafts",
+  {
+    chainId: integer("chain_id").notNull(),
+    contract: text().notNull(),
+    wallet: text().notNull(),
+    fileHash: text("file_hash").notNull(),
+    preparationId: text("preparation_id").notNull().default("legacy"),
+    payload: jsonb().$type<Registration>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  table => [
+    primaryKey({
+      name: "registration_drafts_pkey",
+      columns: [table.chainId, table.contract, table.wallet, table.fileHash, table.preparationId],
+    }),
+  ],
+);
 
 export const challenges = pgTable("siwe_challenges", {
   nonce: text().primaryKey(),

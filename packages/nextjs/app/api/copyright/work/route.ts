@@ -2,27 +2,28 @@ import { and, eq } from "drizzle-orm";
 import { database } from "~~/db/client";
 import { workDetails } from "~~/db/schema";
 import { requireWallet } from "~~/services/copyright/auth";
-import { chainId, registration, registry } from "~~/services/copyright/chain";
+import { chainId, registration, registryAddress } from "~~/services/copyright/chain";
 import { ApiError, endpoint, jsonBody } from "~~/services/copyright/http";
 import { hashSchema, workDetailsSchema } from "~~/utils/copyrightDetails";
+import { editableWorkDetails } from "~~/utils/workDetails";
 
 function key(request: Request) {
   const fileHash = hashSchema.parse(new URL(request.url).searchParams.get("hash"));
-  return { chainId, contract: registry, fileHash };
+  return { chainId, contract: registryAddress(), fileHash };
 }
 
 export const GET = endpoint(async request => {
-  const { fileHash } = key(request);
+  const { fileHash, contract } = key(request);
   const [record] = await database()
     .select()
     .from(workDetails)
     .where(
-      and(eq(workDetails.chainId, chainId), eq(workDetails.contract, registry), eq(workDetails.fileHash, fileHash)),
+      and(eq(workDetails.chainId, chainId), eq(workDetails.contract, contract), eq(workDetails.fileHash, fileHash)),
     );
   if (!record) return { details: null };
   const current = await registration(fileHash);
   if (record.blockHash !== current.blockHash || record.registrant !== current.registrant) return { details: null };
-  return { details: record };
+  return { details: editableWorkDetails(record) };
 });
 
 export const PUT = endpoint(async request => {
@@ -39,5 +40,5 @@ export const PUT = endpoint(async request => {
       target: [workDetails.chainId, workDetails.contract, workDetails.fileHash],
       set: details,
     });
-  return { details };
+  return { details: editableWorkDetails(details) };
 });

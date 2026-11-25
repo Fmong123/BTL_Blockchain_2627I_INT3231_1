@@ -19,6 +19,7 @@ const rpc = new URL(process.env.COPYRIGHT_RPC_URL || "http://127.0.0.1:8545");
 const databaseUrl = process.env.DATABASE_URL;
 const secret = process.env.IRON_SESSION_SECRET;
 if (
+  (process.env.NEXT_PUBLIC_COPYRIGHT_NETWORK && process.env.NEXT_PUBLIC_COPYRIGHT_NETWORK !== "hardhat") ||
   !databaseUrl ||
   !secret ||
   [origin, rpc, new URL(databaseUrl)].some(url => !["127.0.0.1", "localhost"].includes(url.hostname))
@@ -32,7 +33,9 @@ const recipient = mnemonicToAccount(mnemonic, { addressIndex: 1 });
 const issuerAddress = issuer.address.toLowerCase();
 const publicClient = createPublicClient({ chain: hardhat, transport: http(rpc.href) });
 const walletClient = createWalletClient({ account: issuer, chain: hardhat, transport: http(rpc.href) });
-const { address, abi } = deployedContracts[hardhat.id].WorkRegistry;
+const localDeployment = Object.entries(deployedContracts).find(([id]) => Number(id) === hardhat.id)?.[1].WorkRegistry;
+if (!localDeployment) throw new Error("Deploy WorkRegistry locally before running isolated integration tests.");
+const { address, abi } = localDeployment;
 const db = new Pool({ connectionString: databaseUrl });
 
 async function api(
@@ -119,6 +122,16 @@ try {
       await sealData({ wallet: issuerAddress, expiresAt: Date.now() - 1000 }, { password: secret, ttl: 8 * 3600 }),
     );
   await api("profile", 401, { ...a, cookie: oldCookie });
+  const otherChainCookie =
+    "bqs-session=" +
+    encodeURIComponent(
+      await sealData(
+        { wallet: issuerAddress, expiresAt: Date.now() + 60000, chainId: 11155111 },
+        { password: secret, ttl: 8 * 3600 },
+      ),
+    );
+  await api("profile", 401, { ...a, cookie: otherChainCookie });
+  assert.equal((await api("session", 200, { cookie: otherChainCookie })).data.wallet, null);
   await api("profile", 401);
   await api("profile", 403, { ...a, wallet: b.wallet });
   console.log("PASS: SIWE login, replay, origin/domain, expiry, wrong signer and wallet switch");
@@ -177,6 +190,170 @@ try {
   assert.equal((await api(workPath, 200)).data.details.experienceUrl, "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
   console.log("PASS: work registration event check, authorization and normalized experience URL");
 
+  const registrationHash = ("0x" + randomBytes(32).toString("hex")) as `0x${string}`;
+  const registrationBody = {
+    fileHash: registrationHash,
+    title: "Tác phẩm theo quy trình",
+    description: "Hồ sơ đầy đủ trước khi ghi nhận",
+    workType: 2,
+    details: {
+      ...details,
+      parties: [
+        { name: "Tác giả A", role: "Người sáng tác" },
+        { name: "Chủ quyền A", role: "Chủ sở hữu quyền" },
+      ],
+    },
+    rightsConfirmed: true,
+    publicConfirmed: true,
+  };
+  await api("registration", 401, { method: "PUT", body: registrationBody });
+  await api("registration", 400, { ...a, method: "PUT", body: { ...registrationBody, rightsConfirmed: false } });
+  await api("registration", 409, { ...a, method: "PUT", body: { ...registrationBody, fileHash } });
+  await api("registration", 200, { ...a, method: "PUT", body: registrationBody });
+  // A pending draft created before migration 0002 can still be completed without an ID.
+  await db.query("UPDATE registration_drafts SET preparation_id = 'legacy' WHERE file_hash = $1", [registrationHash]);
+  assert.equal((await api("work?hash=" + registrationHash, 200)).data.details, null);
+  assert.equal(
+    (await db.query("SELECT count(*) FROM registration_drafts WHERE file_hash = $1", [registrationHash])).rows[0].count,
+    "1",
+  );
+  const registrationTx = await walletClient.writeContract({
+    address,
+    abi,
+    functionName: "registerWork",
+    args: [registrationHash, registrationBody.title, registrationBody.description, 2],
+  });
+  await publicClient.waitForTransactionReceipt({ hash: registrationTx });
+  const completion = { fileHash: registrationHash, txHash: registrationTx };
+  await api("registration", 403, { ...b, method: "POST", body: completion });
+  await api("registration", 403, { ...a, method: "POST", body: { ...completion, txHash: grantWork } });
+  const mismatchHash = ("0x" + randomBytes(32).toString("hex")) as `0x${string}`;
+  await api("registration", 200, { ...a, method: "PUT", body: { ...registrationBody, fileHash: mismatchHash } });
+  const mismatchTx = await walletClient.writeContract({
+    address,
+    abi,
+    functionName: "registerWork",
+    args: [mismatchHash, "Thông tin khác nháp", registrationBody.description, 2],
+  });
+  await publicClient.waitForTransactionReceipt({ hash: mismatchTx });
+  await api("registration", 409, { ...a, method: "POST", body: { fileHash: mismatchHash, txHash: mismatchTx } });
+  const completed = (await api("registration", 200, { ...a, method: "POST", body: completion })).data;
+  assert.equal(completed.details.basis, registrationBody.details.basis);
+  assert.equal(completed.fileHash, registrationHash);
+  assert.equal(
+    (await api("registration", 200, { ...a, method: "POST", body: completion })).data.details.blockHash,
+    completed.details.blockHash,
+  );
+  assert.equal(
+    (await db.query("SELECT count(*) FROM registration_drafts WHERE file_hash = $1", [registrationHash])).rows[0].count,
+    "0",
+  );
+  console.log(
+    "PASS: private preparation, complete metadata, confirmed receipt matching, wrong wallet/hash/metadata rejection and idempotent finalization",
+  );
+
+  const concurrentHash = ("0x" + randomBytes(32).toString("hex")) as `0x${string}`;
+  const original = { ...registrationBody, fileHash: concurrentHash };
+  const alternate = { ...original, details: { ...original.details, basis: "Hồ sơ ở tab B" } };
+  const preparedA = (await api("registration", 200, { ...a, method: "PUT", body: original })).data;
+  assert.match(preparedA.preparationId ?? "", /^0x[0-9a-f]{64}$/);
+  const preparedB = (await api("registration", 200, { ...a, method: "PUT", body: alternate })).data;
+  const differentTitle = (
+    await api("registration", 200, { ...a, method: "PUT", body: { ...original, title: "Tên ở tab C" } })
+  ).data;
+  assert.notEqual(preparedA.preparationId, preparedB.preparationId);
+  assert.equal(
+    (await api("registration", 200, { ...a, method: "PUT", body: original })).data.preparationId,
+    preparedA.preparationId,
+  );
+  assert.equal(
+    (await db.query("SELECT count(*) FROM registration_drafts WHERE file_hash = $1", [concurrentHash])).rows[0].count,
+    "3",
+  );
+  const concurrentTx = await walletClient.writeContract({
+    address,
+    abi,
+    functionName: "registerWork",
+    args: [concurrentHash, original.title, original.description, 2],
+  });
+  await publicClient.waitForTransactionReceipt({ hash: concurrentTx });
+  const concurrentCompletion = { fileHash: concurrentHash, txHash: concurrentTx };
+  await api("registration", 409, { ...a, method: "POST", body: concurrentCompletion });
+  await api("registration", 404, {
+    ...a,
+    method: "POST",
+    body: { ...concurrentCompletion, preparationId: "0x" + "00".repeat(32) },
+  });
+  await api("registration", 409, {
+    ...a,
+    method: "POST",
+    body: { ...concurrentCompletion, preparationId: differentTitle.preparationId },
+  });
+  const finalizedA = (
+    await api("registration", 200, {
+      ...a,
+      method: "POST",
+      body: { ...concurrentCompletion, preparationId: preparedA.preparationId },
+    })
+  ).data;
+  assert.equal(finalizedA.details.basis, original.details.basis);
+  const updatedBasis = "Chỉnh sửa sau khi hoàn tất";
+  await api("work?hash=" + concurrentHash, 200, {
+    ...a,
+    method: "PUT",
+    body: { ...original.details, basis: updatedBasis },
+  });
+  assert.equal(
+    (
+      await api("registration", 200, {
+        ...a,
+        method: "POST",
+        body: { ...concurrentCompletion, preparationId: preparedB.preparationId },
+      })
+    ).data.details.basis,
+    updatedBasis,
+  );
+  assert.equal(
+    (await db.query("SELECT count(*) FROM registration_drafts WHERE file_hash = $1", [concurrentHash])).rows[0].count,
+    "0",
+  );
+
+  const raceHash = ("0x" + randomBytes(32).toString("hex")) as `0x${string}`;
+  const racePreparations = await Promise.all(
+    [original, alternate].map(
+      async body =>
+        (await api("registration", 200, { ...a, method: "PUT", body: { ...body, fileHash: raceHash } })).data,
+    ),
+  );
+  const raceTx = await walletClient.writeContract({
+    address,
+    abi,
+    functionName: "registerWork",
+    args: [raceHash, original.title, original.description, 2],
+  });
+  await publicClient.waitForTransactionReceipt({ hash: raceTx });
+  const raceResults = await Promise.all(
+    racePreparations.map(
+      async prepared =>
+        (
+          await api("registration", 200, {
+            ...a,
+            method: "POST",
+            body: {
+              fileHash: raceHash,
+              txHash: raceTx,
+              preparationId: prepared.preparationId,
+            },
+          })
+        ).data,
+    ),
+  );
+  assert.equal(raceResults[0].details.basis, raceResults[1].details.basis);
+  assert.ok([original.details.basis, alternate.details.basis].includes(raceResults[0].details.basis));
+  console.log(
+    "PASS: concurrent preparations stay separate, ambiguous recovery is blocked and completed dossiers remain intact",
+  );
+
   const expiresAt = (await publicClient.getBlock()).timestamp + 3600n;
   async function grant() {
     const tx = await walletClient.writeContract({
@@ -233,6 +410,13 @@ try {
   console.log(
     "PASS: mined grants, immutable snapshots, recipient signatures, revoke/reissue and cross-grant replay rejection",
   );
+
+  const logout = await api("session", 200, { ...b, method: "DELETE" });
+  const clearedSession = cookie(logout.cookies, "bqs-session");
+  assert.equal((await api("session", 200, { cookie: clearedSession })).data.wallet, null);
+  await api("profile", 401, { ...b, cookie: clearedSession });
+  assert.equal((await api("session", 200, { cookie: a.cookie })).data.wallet, issuerAddress);
+  console.log("PASS: logout clears the browser session without affecting another wallet session");
 } finally {
   await db.end();
 }

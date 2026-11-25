@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import type { SubmitEvent } from "react";
-import { DetailField } from "./DetailFields";
+import { InfoSection } from "./InfoSection";
+import { Notice } from "./Notice";
 import { WalletSession, copyrightApi, useWalletSession } from "./WalletSession";
-import { useQuery } from "@tanstack/react-query";
-import { useQueryClient } from "@tanstack/react-query";
+import { WorkDetailsFields, WorkDetailsSummary, emptyWorkDetails } from "./WorkDetailsFields";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
-import { categories, partyRoles } from "~~/utils/copyrightDetails";
+import { DocumentTextIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
+import { workDetailsSchema } from "~~/utils/copyrightDetails";
 import type { Profile, WorkDetails } from "~~/utils/copyrightDetails";
+import { editableWorkDetails } from "~~/utils/workDetails";
 
 export function WorkDetailsPanel({ fileHash, registrant }: { fileHash: string; registrant: string }) {
   const path = "work?hash=" + fileHash;
@@ -30,100 +33,64 @@ export function WorkDetailsPanel({ fileHash, registrant }: { fileHash: string; r
     retry: false,
   });
   const data = details.data?.details;
-  const showEditor = editing && owner;
+  const publicProfile = profile.data?.profile;
   return (
-    <section className="bqs-license-panel mt-6 space-y-4" aria-label="Hồ sơ tác phẩm">
-      <h3>Hồ sơ tác phẩm tự khai</h3>
-      {profile.data?.profile && (
-        <p>
-          Ví đăng ký khai báo {profile.data.profile.kind === "organization" ? "tổ chức" : "tên"}{" "}
-          <strong>{profile.data.profile.name}</strong> · {profile.data.profile.role}
-          {profile.data.profile.website && (
-            <>
-              {" "}
-              ·{" "}
-              <a className="link" target="_blank" rel="noopener noreferrer" href={profile.data.profile.website}>
-                Website
-              </a>
-            </>
-          )}
+    <InfoSection
+      className="mt-6"
+      title="Hồ sơ tác phẩm tự khai"
+      icon={<DocumentTextIcon />}
+      description="Thông tin do ví đăng ký cung cấp; chưa được đối chiếu bởi cơ quan có thẩm quyền."
+    >
+      {publicProfile && (
+        <div className="bqs-inset-panel mb-5">
+          <h3>Hồ sơ ví đăng ký</h3>
+          <p className="m-0 break-words">
+            <strong>{publicProfile.name}</strong> · {publicProfile.kind === "organization" ? "Tổ chức" : "Cá nhân"} ·{" "}
+            {publicProfile.role}
+            {publicProfile.website && (
+              <>
+                {" "}
+                ·{" "}
+                <a className="link" target="_blank" rel="noopener noreferrer" href={publicProfile.website}>
+                  Website
+                </a>
+              </>
+            )}
+          </p>
+        </div>
+      )}
+      {profile.error && (
+        <p role="status" className="bqs-help">
+          Chưa tải được hồ sơ công khai của ví.{" "}
+          <button type="button" className="link" onClick={() => void profile.refetch()}>
+            Thử lại
+          </button>
         </p>
       )}
       {details.isPending && <p role="status">Đang tải hồ sơ…</p>}
       {details.error && (
-        <div className="flex flex-wrap gap-3">
-          <p role="status">{details.error.message}</p>
-          <button className="btn btn-ghost btn-sm" onClick={() => void details.refetch()}>
+        <div role="alert" className="alert alert-error flex flex-wrap">
+          <span>{details.error.message}</span>
+          <button className="btn btn-outline btn-sm" onClick={() => void details.refetch()}>
             Tải lại hồ sơ
           </button>
         </div>
       )}
-      {details.data && !data && <p>Chưa có hồ sơ bổ sung.</p>}
-      {data && (
-        <dl className="grid gap-2 break-words">
-          <div>
-            <dt className="font-semibold">Nhóm nội dung</dt>
-            <dd>{data.category}</dd>
-          </div>
-          {data.language && (
-            <div>
-              <dt className="font-semibold">Ngôn ngữ</dt>
-              <dd>{data.language}</dd>
-            </div>
-          )}
-          {data.creationDate && (
-            <div>
-              <dt className="font-semibold">Ngày sáng tạo</dt>
-              <dd>{data.creationDate}</dd>
-            </div>
-          )}
-          {data.publicationDate && (
-            <div>
-              <dt className="font-semibold">Ngày công bố</dt>
-              <dd>{data.publicationDate}</dd>
-            </div>
-          )}
-          <div>
-            <dt className="font-semibold">Các bên và vai trò</dt>
-            <dd>
-              <ul className="list-inside list-disc">
-                {data.parties.map((party, i) => (
-                  <li key={i}>
-                    {party.name} · {party.role}
-                  </li>
-                ))}
-              </ul>
-            </dd>
-          </div>
-          <div>
-            <dt className="font-semibold">Căn cứ quyền</dt>
-            <dd>{data.basis}</dd>
-          </div>
-          {data.certificate && (
-            <div>
-              <dt className="font-semibold">Thông tin chứng nhận chưa đối chiếu</dt>
-              <dd>{data.certificate}</dd>
-            </div>
-          )}
-          {data.experienceUrl && (
-            <div>
-              <dt className="font-semibold">Liên kết trải nghiệm do ví đăng ký cung cấp</dt>
-              <dd>
-                <a className="link" target="_blank" rel="noopener noreferrer" href={data.experienceUrl}>
-                  Mở trên {data.experienceUrl.includes("youtube.com") ? "YouTube" : "Spotify"}
-                </a>
-                <p className="text-sm">Nếu nội dung đã bị gỡ, nền tảng gốc sẽ thông báo khi mở liên kết.</p>
-              </dd>
-            </div>
-          )}
-        </dl>
+      {details.data && !data && (
+        <p className="bqs-help">Bản ghi này chưa có hồ sơ bổ sung. Ví đăng ký có thể khai thông tin bên dưới.</p>
       )}
+      {data && <WorkDetailsSummary details={data} />}
       {owner && (
-        <button className="btn btn-outline btn-sm" disabled={!details.isSuccess} onClick={() => setEditing(!editing)}>
-          {showEditor ? "Đóng chỉnh sửa" : "Sửa hồ sơ tác phẩm"}
+        <button
+          className="btn btn-outline btn-sm mt-5"
+          disabled={!details.isSuccess}
+          onClick={() => setEditing(!editing)}
+        >
+          <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
+          {editing ? "Đóng chỉnh sửa" : data ? "Sửa hồ sơ tác phẩm" : "Bổ sung hồ sơ tác phẩm"}
         </button>
       )}
-      {showEditor && (
+      {editing && owner && (
         <Editor
           key={registrant}
           path={path}
@@ -134,7 +101,7 @@ export function WorkDetailsPanel({ fileHash, registrant }: { fileHash: string; r
           }}
         />
       )}
-    </section>
+    </InfoSection>
   );
 }
 
@@ -148,33 +115,20 @@ function Editor({
   onSave: (saved: { details: WorkDetails }) => void;
 }) {
   const { signedIn, wallet } = useWalletSession();
-  const [partyRows, setPartyRows] = useState(() =>
-    (initial?.parties ?? [{ name: "", role: partyRoles[0] }]).map((party, id) => ({ ...party, id })),
-  );
-  const [nextId, setNextId] = useState(partyRows.length);
+  const [value, setValue] = useState(() => editableWorkDetails(initial ?? emptyWorkDetails()));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   async function save(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    const fields = new FormData(event.currentTarget);
+    setError("");
+    const checked = workDetailsSchema.safeParse(value);
+    if (!checked.success) {
+      setError(checked.error.issues[0].message);
+      return;
+    }
     setBusy(true);
     try {
-      const saved = await copyrightApi<{ details: WorkDetails }>(
-        path,
-        "PUT",
-        {
-          category: fields.get("category"),
-          language: fields.get("language"),
-          creationDate: fields.get("creationDate"),
-          publicationDate: fields.get("publicationDate"),
-          basis: fields.get("basis"),
-          certificate: fields.get("certificate"),
-          experienceUrl: fields.get("experienceUrl"),
-          parties: partyRows.map(({ id }) => ({ name: fields.get("party" + id), role: fields.get("role" + id) })),
-        },
-        wallet,
-      );
-      onSave(saved);
+      onSave(await copyrightApi<{ details: WorkDetails }>(path, "PUT", checked.data, wallet));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không lưu được hồ sơ.");
     } finally {
@@ -182,80 +136,25 @@ function Editor({
     }
   }
   return (
-    <div className="space-y-4">
+    <div className="bqs-inset-panel mt-5 space-y-4">
       <WalletSession />
       {signedIn && (
-        <form onSubmit={save}>
-          <fieldset disabled={busy} className="space-y-4">
-            <p className="text-sm">
-              Các trường này hiển thị công khai. Chỉ nhập tóm tắt hoặc số tham chiếu của giấy tờ.
+        <form onSubmit={save} className="bqs-form">
+          <fieldset disabled={busy} className="space-y-5">
+            <WorkDetailsFields value={value} onChange={setValue} />
+            <p className="bqs-help">
+              Chỉnh sửa này cập nhật hồ sơ tự khai. Tên, tóm tắt, hash và thời điểm trên blockchain giữ theo giao dịch
+              gốc.
             </p>
-            <label className="block">
-              <span className="label">Nhóm nội dung</span>
-              <select name="category" className="select w-full" defaultValue={initial?.category}>
-                {categories.map(value => (
-                  <option key={value}>{value}</option>
-                ))}
-              </select>
-            </label>
-            <DetailField label="Ngôn ngữ" name="language" value={initial?.language} max={40} />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <DetailField label="Ngày sáng tạo" name="creationDate" type="date" value={initial?.creationDate} />
-              <DetailField label="Ngày công bố" name="publicationDate" type="date" value={initial?.publicationDate} />
-            </div>
-            {partyRows.map((party, index) => (
-              <div key={party.id} className="grid gap-3 sm:grid-cols-2">
-                <DetailField label={"Tên bên " + (index + 1)} name={"party" + party.id} value={party.name} required />
-                <label className="block">
-                  <span className="label">Vai trò</span>
-                  <select name={"role" + party.id} className="select w-full" defaultValue={party.role}>
-                    {partyRoles.map(role => (
-                      <option key={role}>{role}</option>
-                    ))}
-                  </select>
-                </label>
-                {partyRows.length > 1 && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm justify-self-start"
-                    onClick={() => setPartyRows(partyRows.filter(row => row.id !== party.id))}
-                  >
-                    Xóa bên {index + 1}
-                  </button>
-                )}
-              </div>
-            ))}
-            {partyRows.length < 12 && (
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => {
-                  setPartyRows([...partyRows, { id: nextId, name: "", role: partyRoles[0] }]);
-                  setNextId(nextId + 1);
-                }}
-              >
-                Thêm bên liên quan
+            <div className="bqs-form-actions bqs-form-footer">
+              <button className="btn btn-primary" aria-busy={busy}>
+                {busy ? "Đang lưu…" : "Lưu hồ sơ tác phẩm"}
               </button>
-            )}
-            <DetailField label="Căn cứ quyền" name="basis" max={500} value={initial?.basis} required />
-            <DetailField
-              label="Chứng nhận (loại, số, cơ quan, ngày cấp nếu có)"
-              name="certificate"
-              max={500}
-              value={initial?.certificate}
-            />
-            <DetailField
-              label="Liên kết YouTube hoặc Spotify"
-              name="experienceUrl"
-              type="url"
-              max={500}
-              value={initial?.experienceUrl}
-            />
-            <button className="btn btn-primary">Lưu hồ sơ tác phẩm</button>
+            </div>
             {error && (
-              <p role="alert" className="text-error">
+              <Notice tone="error" role="alert" title="Chưa lưu được hồ sơ tác phẩm">
                 {error}
-              </p>
+              </Notice>
             )}
           </fieldset>
         </form>
