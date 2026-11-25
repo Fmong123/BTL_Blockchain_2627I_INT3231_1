@@ -2,14 +2,39 @@ name: Quality checks
 
 on:
   push:
-    branches: [main]
+    branches: [main, ngyn_branch, phong_branch, "codex/**"]
   pull_request:
-    branches: [main]
+    branches: [main, ngyn_branch, phong_branch]
+
+permissions:
+  contents: read
 
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: bqs_ci_only
+          POSTGRES_DB: banquyenso_test
+          POSTGRES_INITDB_ARGS: --encoding=UTF8
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d banquyenso_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://postgres:bqs_ci_only@127.0.0.1:5432/banquyenso_test
+      IRON_SESSION_SECRET: bqs-ci-session-secret-for-isolated-tests-only
+      SIWE_ORIGIN: http://localhost:3000
+      COPYRIGHT_RPC_URL: http://127.0.0.1:8545
+      NEXT_PUBLIC_COPYRIGHT_NETWORK: hardhat
+      NEXT_PUBLIC_COPYRIGHT_RPC_URL: http://127.0.0.1:8545
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,24 +49,16 @@ jobs:
       - name: Start local blockchain and wait for RPC
         run: |
           yarn chain > /tmp/bqs-chain.log 2>&1 &
-          node --input-type=module -e '
-            for (let attempt = 0; attempt < 60; attempt++) {
-              try {
-                const response = await fetch("http://127.0.0.1:8545", {
-                  method: "POST", headers: {"Content-Type": "application/json"},
-                  body: JSON.stringify({jsonrpc: "2.0", id: 1, method: "eth_chainId", params: []})
-                });
-                const result = await response.json();
-                if (result.result === "0x7a69") process.exit(0);
-              } catch {}
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-            console.error("Hardhat RPC did not become ready"); process.exit(1);
-          '
+          node scripts/wait-for-service.mjs http://127.0.0.1:8545 hardhat
       - name: Deploy, generate ABI and seed local data
         run: |
           yarn deploy
           yarn demo:seed
+      - name: Migrate and seed isolated PostgreSQL
+        run: |
+          yarn db:migrate
+          yarn db:migrate
+          yarn db:seed
       - name: Check TypeScript
         run: |
           yarn hardhat:check-types
@@ -50,6 +67,14 @@ jobs:
         run: yarn lint
       - name: Build frontend
         run: yarn next:build
-      - name: Show blockchain log on failure
+      - name: Start production app and wait for API
+        run: |
+          yarn next:serve > /tmp/bqs-next.log 2>&1 &
+          node scripts/wait-for-service.mjs http://localhost:3000/api/copyright/session
+      - name: Test SIWE, profiles, metadata and license acceptance
+        run: yarn test:copyright
+      - name: Show service logs on failure
         if: failure()
-        run: cat /tmp/bqs-chain.log 2>/dev/null || true
+        run: |
+          cat /tmp/bqs-chain.log 2>/dev/null || true
+          cat /tmp/bqs-next.log 2>/dev/null || true
