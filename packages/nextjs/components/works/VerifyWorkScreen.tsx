@@ -4,6 +4,8 @@ import { Suspense, useState } from "react";
 import type { SubmitEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "~~/components/PageHeader";
+import { LegalContext } from "~~/components/copyright/LegalContext";
+import { Notice } from "~~/components/copyright/Notice";
 import { WorkFilePicker } from "~~/components/works/WorkFilePicker";
 import { WorkRecord } from "~~/components/works/WorkRecord";
 import { SelectedWorkFile, parseFileHash } from "~~/utils/workFiles";
@@ -80,7 +82,7 @@ function VerifyWorkForm({ initialHash }: { initialHash: string }) {
       <details className={`bqs-lookup-summary ${lookupHash ? "" : "bqs-form-width"}`} open={!lookupHash}>
         <summary>{lookupHash ? "Xác minh bằng file hoặc hash khác" : "Chọn cách xác minh"}</summary>
         <div className="bqs-lookup-body bqs-form">
-          <div role="group" aria-label="Cách xác minh" className="join mt-2 mb-5">
+          <div role="group" aria-label="Cách xác minh" className="join bqs-mode-switch mt-2 mb-5">
             <button
               type="button"
               className={`btn join-item ${mode === "file" ? "btn-primary" : "btn-outline"}`}
@@ -134,17 +136,19 @@ function VerifyWorkForm({ initialHash }: { initialHash: string }) {
                       aria-describedby="hash-help"
                       aria-invalid={Boolean(error)}
                     />
-                    <p id="hash-help" className="text-xs text-base-content/60">
+                    <p id="hash-help" className="bqs-help">
                       Dán hash đã nhận khi đăng ký, gồm 64 ký tự 0–9 và a–f; tiền tố 0x không bắt buộc.
                     </p>
                   </div>
-                  <button type="submit" className="btn btn-primary">
-                    Tra cứu bản ghi
-                  </button>
+                  <div className="bqs-form-actions bqs-form-footer">
+                    <button type="submit" className="btn btn-primary">
+                      Tra cứu bản ghi
+                    </button>
+                  </div>
                   {error && (
-                    <p role="alert" className="text-error">
+                    <Notice tone="error" role="alert" title="Kiểm tra lại hash">
                       {error}
-                    </p>
+                    </Notice>
                   )}
                 </form>
               )}
@@ -152,7 +156,10 @@ function VerifyWorkForm({ initialHash }: { initialHash: string }) {
           </section>
         </div>
       </details>
-      <p className="bqs-note">Chỉnh sửa hoặc đổi định dạng file có thể làm hash thay đổi.</p>
+      <Notice className="mt-5" title="Dùng đúng tệp gốc để đối chiếu">
+        Chỉnh sửa hoặc đổi định dạng file có thể làm hash thay đổi.
+      </Notice>
+      <LegalContext />
     </div>
   );
 }

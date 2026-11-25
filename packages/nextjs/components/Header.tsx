@@ -21,7 +21,8 @@ export const HeaderMenuLinks = () => {
   return menuLinks.map(({ label, href, Icon }) => {
     const isActive =
       (pathname === href && !isDetail) ||
-      (href === "/works" && (isDetail || pathname === "/" || pathname === "/works/register"));
+      (href === "/works" &&
+        (isDetail || pathname === "/" || pathname === "/works/register" || pathname.startsWith("/licenses/")));
     return (
       <Link key={href} href={href} className="bqs-nav-link" aria-current={isActive ? "page" : undefined}>
         <Icon aria-hidden="true" />

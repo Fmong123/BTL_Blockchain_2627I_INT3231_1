@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import Image from "next/image";
+import { Notice } from "~~/components/copyright/Notice";
 import { WorkHash } from "~~/components/works/WorkHash";
 import { hashFile } from "~~/utils/hashFile";
 import {
@@ -98,9 +99,9 @@ export function WorkFilePicker({ value, disabled, onChange, onBusyChange }: Work
         </p>
       )}
       {error && (
-        <p role="alert" className="text-error">
+        <Notice tone="error" role="alert" title="Không đọc được tệp">
           {error}
-        </p>
+        </Notice>
       )}
       {value && (
         <div className="rounded-box border border-base-300 bg-base-200/50 p-4 space-y-3">
@@ -136,9 +137,9 @@ export function WorkFilePicker({ value, disabled, onChange, onBusyChange }: Work
             </a>
           )}
           {previewError && (
-            <p className="text-sm text-warning">
+            <Notice tone="warning" title="Chưa xem trước được tệp">
               Không xem trước được file này. Bạn vẫn có thể ghi nhận hoặc xác minh hash của file.
-            </p>
+            </Notice>
           )}
           <div>
             <span className="text-xs font-semibold uppercase tracking-wide text-base-content/60">SHA-256</span>

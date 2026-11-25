@@ -17,14 +17,17 @@ export function DetailField({
 }) {
   return (
     <label className="block">
-      <span className="label">{label}</span>
+      <span className="label">
+        {label}
+        {required && <span className="text-error"> *</span>}
+      </span>
       <input
         type={type}
         name={name}
         defaultValue={value}
         required={required}
         maxLength={max}
-        className="input w-full"
+        className="input input-bordered w-full"
       />
     </label>
   );

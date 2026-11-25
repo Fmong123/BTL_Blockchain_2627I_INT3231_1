@@ -10,6 +10,7 @@ import {
   InformationCircleIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { Notice } from "~~/components/copyright/Notice";
 import { WORK_CATEGORIES, WorkArt } from "~~/components/works/WorkArt";
 import { useLicenseHistory } from "~~/hooks/licenses/useLicenseHistory";
 import { useRegistryClock } from "~~/hooks/licenses/useRegistryClock";
@@ -100,23 +101,23 @@ function Catalog({ mine }: { mine: boolean }) {
         )}
         <button
           type="button"
-          className="btn btn-ghost btn-xs"
+          className="btn btn-outline btn-sm"
           onClick={() => void Promise.all([refresh(), licenses.refresh(), clock.refetch()]).catch(() => {})}
         >
           <ArrowPathIcon className="h-3.5 w-3.5" aria-hidden="true" /> Làm mới danh sách
         </button>
       </div>
       {onlyMine && !address ? (
-        <div role="status" className="alert alert-info">
+        <Notice role="status" title="Cần kết nối ví">
           Kết nối ví ở đầu trang để xem tác phẩm của bạn.
-        </div>
+        </Notice>
       ) : error ? (
-        <div role="alert" className="alert alert-error flex flex-wrap">
+        <Notice tone="error" role="alert" title="Không tải được tác phẩm">
           <span>Không tải được danh sách: {getParsedError(error)}</span>
-          <button className="btn btn-sm" onClick={() => void refresh()}>
+          <button className="btn btn-outline btn-sm" onClick={() => void refresh()}>
             Thử lại
           </button>
-        </div>
+        </Notice>
       ) : isLoading ? (
         <p role="status">
           <span className="loading loading-spinner loading-sm mr-2" />

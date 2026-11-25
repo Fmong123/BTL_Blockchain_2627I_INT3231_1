@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAccount } from "wagmi";
+import { Notice } from "~~/components/copyright/Notice";
 import { ReceivedLicenses } from "~~/components/licenses/ReceivedLicenses";
 import { WorkCatalog } from "~~/components/works/WorkCatalog";
 
@@ -29,9 +30,9 @@ export function MyLibrary() {
         </button>
       </div>
       {!address ? (
-        <div role="status" className="alert alert-info mt-6">
+        <Notice role="status" className="mt-6" title="Kết nối ví để xem thư viện">
           Kết nối ví ở đầu trang để xem tác phẩm và giấy phép của bạn.
-        </div>
+        </Notice>
       ) : (
         <div role="tabpanel" key={`${address}:${tab}`}>
           {tab === "works" ? <WorkCatalog mine /> : <ReceivedLicenses />}
