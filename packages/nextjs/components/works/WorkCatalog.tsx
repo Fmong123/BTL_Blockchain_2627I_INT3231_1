@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Address } from "@scaffold-ui/components";
+import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import {
   ArrowPathIcon,
@@ -11,6 +12,7 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import { Notice } from "~~/components/copyright/Notice";
+import { copyrightApi } from "~~/components/copyright/WalletSession";
 import { WORK_CATEGORIES, WorkArt } from "~~/components/works/WorkArt";
 import { useLicenseHistory } from "~~/hooks/licenses/useLicenseHistory";
 import { useRegistryClock } from "~~/hooks/licenses/useRegistryClock";
@@ -21,15 +23,34 @@ import { getParsedError } from "~~/utils/scaffold-eth";
 import { WORK_TYPE_LABELS } from "~~/utils/workFiles";
 import { getWorkPage } from "~~/utils/works";
 
+const blockchainProblems = {
+  "wrong-chain": "RPC đang kết nối sai mạng blockchain.",
+  "missing-contract": "Chưa có WorkRegistry trên mạng đã cấu hình.",
+  "rpc-unavailable": "Không kết nối được RPC blockchain.",
+};
+
 export function WorkCatalog({ mine = false }: { mine?: boolean }) {
   const { address } = useAccount();
   return <Catalog key={`${address ?? "public"}:${mine}`} mine={mine} />;
 }
 
 function Catalog({ mine }: { mine: boolean }) {
-  const { address } = useAccount();
+  const { address, chainId } = useAccount();
   const { targetNetwork } = useTargetNetwork();
   const { works, isLoading, error, refresh } = useRegisteredWorks();
+  const health = useQuery({
+    queryKey: ["copyright", "health"],
+    queryFn: () =>
+      copyrightApi<{
+        blockchain: "ready" | keyof typeof blockchainProblems;
+        profiles: "ready" | "unavailable" | "unconfigured";
+      }>("health"),
+    refetchInterval: 15000,
+    retry: false,
+  });
+  const blockchain = health.data?.blockchain;
+  const chainProblem = blockchain && blockchain !== "ready" ? blockchainProblems[blockchain] : undefined;
+  const profiles = health.data?.profiles;
   const licenses = useLicenseHistory({});
   const clock = useRegistryClock();
   const [query, setQuery] = useState("");
@@ -49,6 +70,21 @@ function Catalog({ mine }: { mine: boolean }) {
 
   return (
     <section aria-label="Danh sách tác phẩm">
+      {address && chainId !== targetNetwork.id && (
+        <Notice className="mb-4" tone="warning" title="Ví đang ở mạng khác">
+          Chuyển ví sang {targetNetwork.name} (Chain ID {targetNetwork.id}) để thao tác.
+        </Notice>
+      )}
+      {(health.error || (profiles && profiles !== "ready")) && (
+        <Notice className="mb-4" tone="warning" title="Dịch vụ hồ sơ chưa sẵn sàng">
+          <span>
+            {profiles === "unconfigured" ? "Chưa cấu hình PostgreSQL." : "Chưa xác nhận được kết nối PostgreSQL."}
+          </span>
+          <button type="button" className="btn btn-outline btn-sm" onClick={() => void health.refetch()}>
+            Kiểm tra lại
+          </button>
+        </Notice>
+      )}
       <div className="bqs-toolbar">
         <label className="input bqs-search">
           <MagnifyingGlassIcon className="h-4 w-4 shrink-0 text-base-content/50" aria-hidden="true" />
@@ -102,7 +138,9 @@ function Catalog({ mine }: { mine: boolean }) {
         <button
           type="button"
           className="btn btn-outline btn-sm"
-          onClick={() => void Promise.all([refresh(), licenses.refresh(), clock.refetch()]).catch(() => {})}
+          onClick={() =>
+            void Promise.all([refresh(), licenses.refresh(), clock.refetch(), health.refetch()]).catch(() => {})
+          }
         >
           <ArrowPathIcon className="h-3.5 w-3.5" aria-hidden="true" /> Làm mới danh sách
         </button>
@@ -111,10 +149,10 @@ function Catalog({ mine }: { mine: boolean }) {
         <Notice role="status" title="Cần kết nối ví">
           Kết nối ví ở đầu trang để xem tác phẩm của bạn.
         </Notice>
-      ) : error ? (
+      ) : error || chainProblem ? (
         <Notice tone="error" role="alert" title="Không tải được tác phẩm">
-          <span>Không tải được danh sách: {getParsedError(error)}</span>
-          <button className="btn btn-outline btn-sm" onClick={() => void refresh()}>
+          <span>{chainProblem || getParsedError(error)}</span>
+          <button className="btn btn-outline btn-sm" onClick={() => void Promise.all([refresh(), health.refetch()])}>
             Thử lại
           </button>
         </Notice>
@@ -132,7 +170,11 @@ function Catalog({ mine }: { mine: boolean }) {
           {result.total === 0 ? (
             <div className="card border border-base-300 bg-base-100">
               <div className="card-body">
-                <h2 className="card-title">Chưa có tác phẩm phù hợp</h2>
+                <h2 className="card-title">
+                  {!mine && !query && !workType && !onlyMine
+                    ? "Chưa có tác phẩm được đăng ký"
+                    : "Chưa có tác phẩm phù hợp"}
+                </h2>
                 <p className="m-0">Thử đổi từ khóa hoặc bộ lọc, hoặc đăng ký tác phẩm đầu tiên.</p>
               </div>
             </div>

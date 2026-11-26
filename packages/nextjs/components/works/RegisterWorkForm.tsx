@@ -23,6 +23,7 @@ import { WorkFilePicker } from "~~/components/works/WorkFilePicker";
 import { copyrightChain, copyrightDeployment, transactionUrl } from "~~/copyright.config";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { hashSchema, preparationIdSchema, registrationSchema, workDetailsSchema } from "~~/utils/copyrightDetails";
+import { DraftEntry, readDraft, saveDraft } from "~~/utils/registrationDraft";
 import { submitRegistration } from "~~/utils/registrationFlow";
 import { getParsedError } from "~~/utils/scaffold-eth";
 import { SelectedWorkFile, getWorkMetadataError } from "~~/utils/workFiles";
@@ -71,6 +72,7 @@ function RegisterWorkForAccount() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<RegistrationResult>();
+  const [resumeDraft, setResumeDraft] = useState<DraftEntry>();
   const storageKey = `bqs-registration:${copyrightChain.id}:${copyrightDeployment?.address.toLowerCase()}:${wallet}`;
   useEffect(() => {
     if (!wallet) return;
@@ -98,6 +100,16 @@ function RegisterWorkForAccount() {
       /* Storage may be disabled; the server still retains the prepared draft. */
     }
   }, [storageKey, wallet]);
+  const editKey = storageKey + ":editing";
+  const canSaveDraft = Boolean(wallet && copyrightDeployment && chainId === copyrightChain.id);
+  useEffect(() => {
+    if (canSaveDraft) setResumeDraft(readDraft(editKey));
+  }, [canSaveDraft, editKey]);
+  useEffect(() => {
+    if (canSaveDraft && selection && !result && step >= 2) {
+      saveDraft(editKey, { fileHash: selection.fileHash, fileName: selection.file.name, title, description, details });
+    }
+  }, [canSaveDraft, description, details, editKey, result, selection, step, title]);
   const { data: contract, isLoading: isContractLoading } = useDeployedContractInfo({
     contractName: "WorkRegistry",
     chainId: copyrightChain.id,
@@ -129,12 +141,24 @@ function RegisterWorkForAccount() {
   const unavailable = !isContractLoading && !contract;
 
   function handleSelection(value: SelectedWorkFile | undefined) {
+    if (value && resumeDraft && value.fileHash !== resumeDraft.fileHash) {
+      setError("Tệp này khác hash của bản nháp. Chọn lại đúng tệp gốc hoặc bỏ bản nháp để bắt đầu với tệp khác.");
+      return;
+    }
     setSelection(value);
     setError("");
     setRightsConfirmed(false);
     setPublicConfirmed(false);
     if (value) {
+      if (resumeDraft) {
+        setTitle(resumeDraft.title);
+        setDescription(resumeDraft.description);
+        setDetails(resumeDraft.details);
+        setResumeDraft(undefined);
+        return;
+      }
       setTitle(value.file.name.replace(/\.[^.]+$/, ""));
+      setDescription("");
       setDetails({
         ...emptyWorkDetails(),
         category: value.workType === 0 ? "Logo / thiết kế" : value.workType === 1 ? "Bản ghi" : "Tài liệu",
@@ -174,6 +198,7 @@ function RegisterWorkForAccount() {
     } catch {
       /* Retry is idempotent. */
     }
+    saveDraft(editKey);
     if (!active.current) return;
     setResult({ ...pending, saved: true, confirmed: true });
     await queryClient.invalidateQueries({ queryKey: ["copyright"] });
@@ -314,6 +339,22 @@ function RegisterWorkForAccount() {
                 onBusyChange={setIsHashing}
                 disabled={busy || !isConnected || chainId !== copyrightChain.id}
               />
+              {resumeDraft && (
+                <Notice title="Có bản nháp trên trình duyệt">
+                  <p className="m-0">Chọn lại tệp {resumeDraft.fileName} để đối chiếu hash và tiếp tục.</p>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    type="button"
+                    onClick={() => {
+                      saveDraft(editKey);
+                      setResumeDraft(undefined);
+                      setError("");
+                    }}
+                  >
+                    Bỏ bản nháp
+                  </button>
+                </Notice>
+              )}
               {selection && isFetching && (
                 <p role="status" className="bqs-help">
                   Đang đối chiếu trên blockchain…
@@ -572,6 +613,8 @@ function RegisterWorkForAccount() {
                       } catch {
                         /* The prepared server draft remains available. */
                       }
+                      saveDraft(editKey);
+                      setResumeDraft(undefined);
                       setResult(undefined);
                       setSelection(undefined);
                       setStep(1);

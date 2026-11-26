@@ -58,7 +58,7 @@ export function useLicenseActions(refresh: () => Promise<void>, attachTerms?: (t
       } catch {
         if (active.current) {
           const warning = "Giao dịch đã thành công nhưng chưa tải được dữ liệu mới. Bấm Làm mới để thử lại.";
-          setRefreshWarning(warning);
+          setRefreshWarning(previous => (previous ? previous + " " + warning : warning));
           notification.warning(warning);
         }
       }
