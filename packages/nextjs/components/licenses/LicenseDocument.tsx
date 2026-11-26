@@ -7,7 +7,7 @@ import { Address } from "@scaffold-ui/components";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { zeroAddress } from "viem";
-import { useAccount, usePublicClient } from "wagmi";
+import { usePublicClient } from "wagmi";
 import {
   ArrowDownTrayIcon,
   ArrowPathIcon,
@@ -26,7 +26,7 @@ import {
 import { PageHeader } from "~~/components/PageHeader";
 import { LicenseTermsPanel } from "~~/components/copyright/LicenseTermsPanel";
 import type { LicenseTerms } from "~~/components/copyright/LicenseTermsPanel";
-import { WalletSession, copyrightApi, useWalletSession } from "~~/components/copyright/WalletSession";
+import { copyrightApi } from "~~/components/copyright/WalletSession";
 import { copyrightChain, copyrightDeployment, transactionUrl } from "~~/copyright.config";
 import { useScaffoldContract } from "~~/hooks/scaffold-eth";
 import { readEventLogs } from "~~/utils/eventLogs";
@@ -45,7 +45,7 @@ function DocumentField({ label, children, mono = false }: { label: string; child
 
 export function LicenseDocument({ id, expectedIdentity }: { id: bigint; expectedIdentity?: LicenseIdentity }) {
   const [origin, setOrigin] = useState("");
-  const [action, setAction] = useState<"refresh" | "print" | "download" | "evidence" | null>(null);
+  const [action, setAction] = useState<"refresh" | "print" | "download" | null>(null);
   const exportMenu = useRef<HTMLDetailsElement>(null);
   const [actionError, setActionError] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -93,13 +93,6 @@ export function LicenseDocument({ id, expectedIdentity }: { id: bigint; expected
     },
   });
   const license = record.data?.license;
-  const { address } = useAccount();
-  const party = Boolean(
-    address &&
-    license &&
-    [license.licensor, license.licensee].some(value => value.toLowerCase() === address.toLowerCase()),
-  );
-  const { signedIn, wallet } = useWalletSession(party);
   const grant = record.data?.grant;
   const observedBlock = record.data?.observedBlock;
   const identity =
@@ -111,18 +104,7 @@ export function LicenseDocument({ id, expectedIdentity }: { id: bigint; expected
   const status = getLicenseStatus(license, observedBlock?.timestamp);
   const printable = Boolean(license && status && url && !mismatch && !error && !loading);
 
-  function downloadFile(blob: Blob, name: string) {
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = objectUrl;
-    link.download = name;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-  }
-
-  async function runAction(nextAction: "refresh" | "print" | "download" | "evidence") {
+  async function runAction(nextAction: "refresh" | "print" | "download") {
     if (action) return;
     if (exportMenu.current) exportMenu.current.open = false;
     // A failed deployment check leaves the contract hook unavailable until it
@@ -151,19 +133,10 @@ export function LicenseDocument({ id, expectedIdentity }: { id: bigint; expected
       ) {
         throw new Error("Liên kết không khớp lần cấp giấy phép trên mạng hiện tại.");
       }
-      const termsPath = "terms?tx=" + fresh.grant.transactionHash + "&id=" + id + "&block=" + fresh.grant.blockHash;
-      if (nextAction === "evidence") {
-        const evidence = await copyrightApi(termsPath + "&evidence=1", "GET", undefined, wallet);
-        downloadFile(
-          new Blob([JSON.stringify(evidence, null, 2) + "\n"], { type: "application/json" }),
-          "giay-phep-" + id + ".json",
-        );
-        setFeedback("Đã tải dữ liệu đối chiếu giấy phép.");
-        return;
-      }
       const { terms } = await queryClient.fetchQuery({
         queryKey: ["copyright", "terms", fresh.grant.transactionHash, id.toString(), fresh.grant.blockHash],
-        queryFn: () => copyrightApi<{ terms: LicenseTerms | null }>(termsPath),
+        queryFn: () =>
+          copyrightApi<{ terms: LicenseTerms | null }>("terms?tx=" + fresh.grant.transactionHash + "&id=" + id),
         staleTime: 0,
       });
       setFeedback("Đã cập nhật blockchain và điều khoản · Block #" + fresh.observedBlock.number.toString() + ".");
@@ -225,7 +198,14 @@ export function LicenseDocument({ id, expectedIdentity }: { id: bigint; expected
           },
           { regular, bold },
         );
-        downloadFile(new Blob([new Uint8Array(bytes).buffer], { type: "application/pdf" }), "giay-phep-" + id + ".pdf");
+        const objectUrl = URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer], { type: "application/pdf" }));
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = `giay-phep-${id}.pdf`;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
         setFeedback(`Đã tạo và bắt đầu tải giay-phep-${id}.pdf · Block #${fresh.observedBlock.number}.`);
       }
     } catch (err) {
@@ -300,28 +280,10 @@ export function LicenseDocument({ id, expectedIdentity }: { id: bigint; expected
                     Tải PDF về máy
                   </button>
                 </li>
-                {signedIn && (
-                  <li>
-                    <button
-                      type="button"
-                      disabled={!printable || Boolean(action)}
-                      onClick={() => void runAction("evidence")}
-                    >
-                      <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
-                      Tải dữ liệu đối chiếu JSON
-                    </button>
-                  </li>
-                )}
               </ul>
             </details>
           </div>
         </div>
-        {printable && party && !signedIn && (
-          <details className="mt-3 bqs-inset-panel">
-            <summary className="cursor-pointer">Đăng nhập để xuất dữ liệu đối chiếu chữ ký</summary>
-            <WalletSession />
-          </details>
-        )}
         {actionError && (
           <div role="alert" className="alert alert-error mb-4">
             <InformationCircleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />

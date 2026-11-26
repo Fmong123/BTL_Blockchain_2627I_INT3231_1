@@ -57,7 +57,7 @@ export function LicenseTermsPanel({
   expanded?: boolean;
   grantBlockHash?: string;
 }) {
-  const path = "terms?tx=" + tx + "&id=" + license.id + (grantBlockHash ? "&block=" + grantBlockHash : "");
+  const path = "terms?tx=" + tx + "&id=" + license.id;
   const { address } = useAccount();
   const issuer = address?.toLowerCase() === license.licensor.toLowerCase();
   const recipient = address?.toLowerCase() === license.licensee.toLowerCase();
@@ -81,7 +81,7 @@ export function LicenseTermsPanel({
         ? "Đã chấp thuận"
         : terms
           ? "Chưa chấp thuận"
-          : "Đã cấp · Chờ lưu điều khoản";
+          : "Chưa lưu điều khoản";
   async function submit() {
     if (terms && readHash !== terms.termsHash) return;
     setBusy(true);
@@ -102,10 +102,7 @@ export function LicenseTermsPanel({
   }
 
   return (
-    <details
-      className="bqs-terms-panel border border-base-300 rounded-box"
-      open={expanded || (issuer && query.isSuccess && !terms) || undefined}
-    >
+    <details className="bqs-terms-panel border border-base-300 rounded-box" open={expanded || undefined}>
       <summary>
         <span className="bqs-terms-heading">
           <DocumentTextIcon aria-hidden="true" />
@@ -222,7 +219,11 @@ export function LicenseTermsPanel({
                   ) : (
                     <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
                   )}
-                  {busy ? "Đang xử lý…" : terms ? "Ký chấp thuận điều khoản" : "Lưu điều khoản của lần cấp này"}
+                  {busy
+                    ? "Đang xử lý…"
+                    : terms
+                      ? "Ký chấp thuận điều khoản"
+                      : "Gắn điều khoản v" + CURRENT_TERMS.version}
                 </button>
               ) : (
                 <WalletSession />

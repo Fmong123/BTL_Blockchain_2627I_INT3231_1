@@ -1,6 +1,6 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { database } from "~~/db/client";
-import { workDetails, workRevisions } from "~~/db/schema";
+import { workDetails } from "~~/db/schema";
 import { requireWallet } from "~~/services/copyright/auth";
 import { chainId, registration, registryAddress } from "~~/services/copyright/chain";
 import { ApiError, endpoint, jsonBody } from "~~/services/copyright/http";
@@ -14,27 +14,6 @@ function key(request: Request) {
 
 export const GET = endpoint(async request => {
   const { fileHash, contract } = key(request);
-  if (new URL(request.url).searchParams.get("history") === "1") {
-    const wallet = await requireWallet(request);
-    const { blockHash, registrant } = await registration(fileHash);
-    if (wallet !== registrant) throw new ApiError(403, "Chỉ ví đăng ký được xem lịch sử hồ sơ.");
-    const { id, changedAt, editor, details } = workRevisions;
-    const history = await database()
-      .select({ id, changedAt, editor, details })
-      .from(workRevisions)
-      .where(
-        and(
-          eq(workRevisions.chainId, chainId),
-          eq(workRevisions.contract, contract),
-          eq(workRevisions.fileHash, fileHash),
-          eq(workRevisions.blockHash, blockHash),
-          eq(workRevisions.editor, wallet),
-        ),
-      )
-      .orderBy(desc(id))
-      .limit(51);
-    return { history: history.slice(0, 50), hasEarlier: history.length > 50 };
-  }
   const [record] = await database()
     .select()
     .from(workDetails)

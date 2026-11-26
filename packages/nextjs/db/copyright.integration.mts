@@ -188,13 +188,6 @@ try {
   });
   await api(workPath, 200, { ...a, method: "PUT", body: details });
   assert.equal((await api(workPath, 200)).data.details.experienceUrl, "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-  const historyPath = workPath + "&history=1";
-  await api(historyPath, 401);
-  await api(historyPath, 403, b);
-  await api(workPath, 200, { ...a, method: "PUT", body: details });
-  const firstHistory = (await api(historyPath, 200, a)).data.history;
-  assert.equal(firstHistory.length, 1);
-  assert.equal(firstHistory[0].editor, issuerAddress);
   console.log("PASS: work registration event check, authorization and normalized experience URL");
 
   const registrationHash = ("0x" + randomBytes(32).toString("hex")) as `0x${string}`;
@@ -380,14 +373,10 @@ try {
   }
   const first = await grant();
   assert.equal((await api(first.path, 200)).data.terms, null);
-  const grantReceipt = await publicClient.getTransactionReceipt({ hash: first.tx });
-  const pinnedPath = first.path + "&block=" + grantReceipt.blockHash;
-  const evidencePath = pinnedPath + "&evidence=1";
   const version = { version: 2 };
   await api(first.path, 403, { ...b, method: "PUT", body: version });
   await api("terms?tx=" + grantWork + "&id=" + first.id, 404);
-  await api(first.path + "&block=0x" + "00".repeat(32), 409, { ...a, method: "PUT", body: version });
-  await api(pinnedPath, 200, { ...a, method: "PUT", body: version });
+  await api("terms?tx=" + first.tx, 200, { ...a, method: "PUT", body: version });
   const terms = (await api(first.path, 200)).data.terms;
   assert.equal(terms.termsHash, keccak256(stringToHex(terms.content)));
   const signature = await recipient.signMessage({ message: terms.message });
@@ -400,21 +389,6 @@ try {
   );
   await api(workPath, 200, { ...a, method: "PUT", body: { ...details, basis: "Cập nhật hồ sơ sau khi ký" } });
   assert.deepEqual((await api(first.path, 200)).data.terms, accepted);
-  const history = (await api(historyPath, 200, a)).data.history;
-  assert.deepEqual(
-    history.map((row: { details: { basis: string } }) => row.details.basis),
-    ["Cập nhật hồ sơ sau khi ký", details.basis],
-  );
-  await api(evidencePath, 401);
-  const evidence = (await api(evidencePath, 200, b)).data;
-  assert.equal(evidence.grant.blockHash, grantReceipt.blockHash);
-  assert.equal(evidence.terms.signature, signature);
-  assert.equal(evidence.terms.signedMessage, terms.message);
-  assert.equal(
-    await publicClient.verifyMessage({ address: recipient.address, message: evidence.terms.signedMessage, signature }),
-    true,
-  );
-  assert.deepEqual((await api("health", 200)).data, { blockchain: "ready", profiles: "ready" });
 
   const revoked = await walletClient.writeContract({ address, abi, functionName: "revokeLicense", args: [first.id] });
   await publicClient.waitForTransactionReceipt({ hash: revoked });

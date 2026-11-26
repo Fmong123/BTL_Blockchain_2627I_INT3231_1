@@ -46,8 +46,6 @@ Mở địa chỉ Next.js thông báo, mặc định http://localhost:3000. Mạ
 
 Nếu chạy trên PowerShell và Yarn bị chặn, thay `yarn` bằng `yarn.cmd`. Có thể dùng một PostgreSQL UTF-8 đã có thay Compose. Hồ sơ, đăng nhập và điều khoản cần Next.js có server runtime. Luồng đăng ký mới và cấp phép trên giao diện cần PostgreSQL và đăng nhập ví để lưu hồ sơ/điều khoản trước khi gửi giao dịch. Tra cứu blockchain và thu hồi vẫn hoạt động khi API hồ sơ chưa sẵn sàng.
 
-Xem [kiểm tra dịch vụ, sao lưu và khôi phục local](docs/LOCAL_OPERATIONS.md).
-
 ## Tạo bộ dữ liệu demo
 
 Sau deploy, chạy:

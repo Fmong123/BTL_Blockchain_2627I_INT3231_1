@@ -13,35 +13,12 @@ import { workDetailsSchema } from "~~/utils/copyrightDetails";
 import type { Profile, WorkDetails } from "~~/utils/copyrightDetails";
 import { editableWorkDetails } from "~~/utils/workDetails";
 
-const detailLabels: Record<keyof WorkDetails, string> = {
-  category: "Nhóm nội dung",
-  language: "Ngôn ngữ",
-  creationDate: "Ngày sáng tạo",
-  publicationDate: "Ngày công bố",
-  parties: "Các bên và vai trò",
-  basis: "Căn cứ quyền",
-  certificate: "Thông tin chứng nhận",
-  experienceUrl: "Liên kết",
-};
-
-type DossierRevision = { id: number; changedAt: string | null; editor: string; details: WorkDetails };
-
 export function WorkDetailsPanel({ fileHash, registrant }: { fileHash: string; registrant: string }) {
   const path = "work?hash=" + fileHash;
   const queryClient = useQueryClient();
   const { address } = useAccount();
   const owner = address?.toLowerCase() === registrant.toLowerCase();
-  const { wallet, signedIn } = useWalletSession(owner);
   const [editing, setEditing] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-  const historyKey = ["copyright", path, "history", wallet];
-  const history = useQuery({
-    queryKey: historyKey,
-    queryFn: () =>
-      copyrightApi<{ history: DossierRevision[]; hasEarlier: boolean }>(path + "&history=1", "GET", undefined, wallet),
-    enabled: owner && signedIn && showHistory,
-    retry: false,
-  });
   const details = useQuery({
     queryKey: ["copyright", path],
     queryFn: () => copyrightApi<{ details: WorkDetails | null }>(path),
@@ -103,45 +80,6 @@ export function WorkDetailsPanel({ fileHash, registrant }: { fileHash: string; r
         <p className="bqs-help">Bản ghi này chưa có hồ sơ bổ sung. Ví đăng ký có thể khai thông tin bên dưới.</p>
       )}
       {data && <WorkDetailsSummary details={data} />}
-      {owner && data && (
-        <details className="bqs-inset-panel mt-5" onToggle={event => setShowHistory(event.currentTarget.open)}>
-          <summary className="cursor-pointer font-semibold">Lịch sử hồ sơ</summary>
-          {showHistory && !signedIn && <WalletSession />}
-          {showHistory && signedIn && (
-            <div className="mt-3 space-y-3">
-              {history.isPending && <p role="status">Đang tải lịch sử…</p>}
-              {history.error && (
-                <Notice tone="error" role="alert">
-                  {history.error.message}
-                </Notice>
-              )}
-              {history.data?.history.length === 0 && <p>Chưa có bản chỉnh sửa được ghi nhận.</p>}
-              {history.data?.history.map((revision, index, revisions) => {
-                const earlier = revisions[index + 1];
-                const changes =
-                  earlier &&
-                  (Object.keys(detailLabels) as (keyof WorkDetails)[])
-                    .filter(field => JSON.stringify(revision.details[field]) !== JSON.stringify(earlier.details[field]))
-                    .map(field => detailLabels[field])
-                    .join(", ");
-                return (
-                  <details key={revision.id} className="rounded-box border border-base-300 p-3">
-                    <summary className="cursor-pointer">
-                      {revision.changedAt
-                        ? new Date(revision.changedAt).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })
-                        : "Hồ sơ trước khi có lịch sử"}
-                      {changes ? " · " + changes : ""}
-                    </summary>
-                    <p className="my-2 break-all text-sm">Ví lưu: {revision.editor}</p>
-                    <WorkDetailsSummary details={revision.details} />
-                  </details>
-                );
-              })}
-              {history.data?.hasEarlier && <p className="text-sm">Đang hiển thị 50 bản gần nhất.</p>}
-            </div>
-          )}
-        </details>
-      )}
       {owner && (
         <button
           className="btn btn-outline btn-sm mt-5"
@@ -159,7 +97,6 @@ export function WorkDetailsPanel({ fileHash, registrant }: { fileHash: string; r
           initial={data}
           onSave={saved => {
             queryClient.setQueryData(["copyright", path], saved);
-            void queryClient.invalidateQueries({ queryKey: historyKey });
             setEditing(false);
           }}
         />

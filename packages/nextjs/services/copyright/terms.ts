@@ -70,7 +70,7 @@ export function publicSnapshot(snapshot?: Snapshot) {
     content: snapshot.content,
     termsHash: snapshot.termsHash,
     acceptedAt: snapshot.acceptedAt,
-    message: snapshot.signedMessage ?? acceptanceMessage(snapshot),
+    message: acceptanceMessage(snapshot),
   };
 }
 

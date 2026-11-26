@@ -1,5 +1,5 @@
-import { boolean, index, integer, jsonb, pgTable, primaryKey, serial, text, timestamp } from "drizzle-orm/pg-core";
-import type { Registration, WorkDetails } from "~~/utils/copyrightDetails";
+import { boolean, integer, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import type { Registration } from "~~/utils/copyrightDetails";
 
 export const registrationDrafts = pgTable(
   "registration_drafts",
@@ -77,22 +77,5 @@ export const licenseTerms = pgTable(
   },
   table => [
     primaryKey({ columns: [table.chainId, table.contract, table.grantHash, table.blockHash, table.licenseId] }),
-  ],
-);
-
-export const workRevisions = pgTable(
-  "work_revisions",
-  {
-    id: serial().primaryKey(),
-    chainId: integer("chain_id").notNull(),
-    contract: text().notNull(),
-    fileHash: text("file_hash").notNull(),
-    blockHash: text("block_hash").notNull(),
-    editor: text().notNull(),
-    changedAt: timestamp("changed_at", { withTimezone: true }),
-    details: jsonb().$type<WorkDetails>().notNull(),
-  },
-  table => [
-    index("work_revisions_lookup").on(table.chainId, table.contract, table.fileHash, table.blockHash, table.id),
   ],
 );
