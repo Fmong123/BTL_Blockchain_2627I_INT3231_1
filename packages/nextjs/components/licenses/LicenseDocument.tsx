@@ -300,7 +300,7 @@ export function LicenseDocument({ id, expectedIdentity }: { id: bigint; expected
                     Tải PDF về máy
                   </button>
                 </li>
-                {signedIn && (
+                {party && signedIn && (
                   <li>
                     <button
                       type="button"
