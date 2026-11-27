@@ -63,9 +63,9 @@ jobs:
         run: |
           yarn hardhat:check-types
           yarn next:check-types
-      - name: Lint
-        run: yarn lint
-      - name: Build frontend
+      - name: Lint Hardhat
+        run: yarn hardhat:lint
+      - name: Lint and build frontend
         run: yarn next:build
       - name: Start production app and wait for API
         run: |
