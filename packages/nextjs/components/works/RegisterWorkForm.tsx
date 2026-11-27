@@ -25,17 +25,16 @@ import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContr
 import { hashSchema, preparationIdSchema, registrationSchema, workDetailsSchema } from "~~/utils/copyrightDetails";
 import { DraftEntry, readDraft, saveDraft } from "~~/utils/registrationDraft";
 import { submitRegistration } from "~~/utils/registrationFlow";
+import {
+  PendingRegistration,
+  readRegistrationRecoveries,
+  removeRegistrationRecovery,
+  saveRegistrationRecovery,
+} from "~~/utils/registrationRecovery";
 import { getParsedError } from "~~/utils/scaffold-eth";
 import { SelectedWorkFile, getWorkMetadataError } from "~~/utils/workFiles";
 
-type RegistrationResult = {
-  txHash: `0x${string}`;
-  fileHash: `0x${string}`;
-  title: string;
-  saved: boolean;
-  confirmed?: boolean;
-  preparationId?: string;
-};
+type RegistrationResult = PendingRegistration & { saved: boolean };
 
 export function RegisterWorkForm() {
   const { address, chainId } = useAccount();
@@ -72,36 +71,26 @@ function RegisterWorkForAccount() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<RegistrationResult>();
+  const [recoveries, setRecoveries] = useState<PendingRegistration[]>([]);
   const [resumeDraft, setResumeDraft] = useState<DraftEntry>();
   const storageKey = `bqs-registration:${copyrightChain.id}:${copyrightDeployment?.address.toLowerCase()}:${wallet}`;
-  useEffect(() => {
-    if (!wallet) return;
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw) return;
-      const saved = JSON.parse(raw);
-      if (
-        hashSchema.safeParse(saved.txHash).success &&
-        hashSchema.safeParse(saved.fileHash).success &&
-        typeof saved.title === "string" &&
-        (saved.preparationId === undefined || preparationIdSchema.safeParse(saved.preparationId).success)
-      ) {
-        setResult({
-          txHash: saved.txHash,
-          fileHash: saved.fileHash,
-          title: saved.title,
-          saved: false,
-          confirmed: saved.confirmed === true,
-          preparationId: saved.preparationId,
-        });
-        setStep(4);
-      }
-    } catch {
-      /* Storage may be disabled; the server still retains the prepared draft. */
-    }
-  }, [storageKey, wallet]);
   const editKey = storageKey + ":editing";
   const canSaveDraft = Boolean(wallet && copyrightDeployment && chainId === copyrightChain.id);
+  useEffect(() => {
+    if (!canSaveDraft) return;
+    const pending = readRegistrationRecoveries(storageKey);
+    setRecoveries(pending);
+    if (pending.length === 1) {
+      setResult({ ...pending[0], saved: false });
+      setStep(4);
+    }
+    const syncRecoveries = (event: StorageEvent) => {
+      if (!event.key || event.key === storageKey || event.key.startsWith(storageKey + ":tx:"))
+        setRecoveries(readRegistrationRecoveries(storageKey));
+    };
+    window.addEventListener("storage", syncRecoveries);
+    return () => window.removeEventListener("storage", syncRecoveries);
+  }, [canSaveDraft, storageKey]);
   useEffect(() => {
     if (canSaveDraft) setResumeDraft(readDraft(editKey));
   }, [canSaveDraft, editKey]);
@@ -193,13 +182,10 @@ function RegisterWorkForAccount() {
       { txHash: pending.txHash, fileHash: pending.fileHash, preparationId: pending.preparationId },
       wallet,
     );
-    try {
-      localStorage.removeItem(storageKey);
-    } catch {
-      /* Retry is idempotent. */
-    }
-    saveDraft(editKey);
+    removeRegistrationRecovery(storageKey, pending);
+    if (readDraft(editKey)?.fileHash === pending.fileHash) saveDraft(editKey);
     if (!active.current) return;
+    setRecoveries(readRegistrationRecoveries(storageKey));
     setResult({ ...pending, saved: true, confirmed: true });
     await queryClient.invalidateQueries({ queryKey: ["copyright"] });
   }
@@ -230,8 +216,11 @@ function RegisterWorkForAccount() {
     setIsSubmitting(true);
     const currentSelection = selection;
     let preparationId: string | undefined;
+    let operationId: PendingRegistration["operationId"];
     const remember = (hash: `0x${string}`, confirmed = true) => {
+      operationId ??= hash;
       const pending = {
+        operationId,
         txHash: hash,
         fileHash: currentSelection.fileHash,
         title: checked.data.title,
@@ -243,11 +232,7 @@ function RegisterWorkForAccount() {
         setResult(pending);
         setStep(4);
       }
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(pending));
-      } catch {
-        /* Preserve current state and continue finalization if storage is unavailable. */
-      }
+      saveRegistrationRecovery(storageKey, pending);
     };
     try {
       const outcome = await submitRegistration({
@@ -282,6 +267,7 @@ function RegisterWorkForAccount() {
         remember,
         finalize: hash =>
           finish({
+            operationId,
             txHash: hash,
             fileHash: currentSelection.fileHash,
             title: checked.data.title,
@@ -325,6 +311,30 @@ function RegisterWorkForAccount() {
               icon={<FolderOpenIcon />}
               description="Tính dấu vân tay số và kiểm tra tệp đã được ghi nhận hay chưa."
             >
+              {recoveries.length > 0 && (
+                <Notice className="mb-4" title="Giao dịch chờ hoàn tất">
+                  <ul className="m-0 space-y-2 p-0">
+                    {recoveries.map(pending => (
+                      <li key={pending.operationId ?? pending.txHash} className="flex flex-wrap items-center gap-2">
+                        <span className="break-all">
+                          {pending.title} · {pending.txHash.slice(0, 12)}…
+                        </span>
+                        <button
+                          className="btn btn-outline btn-sm"
+                          type="button"
+                          onClick={() => {
+                            setError("");
+                            setResult({ ...pending, saved: false });
+                            setStep(4);
+                          }}
+                        >
+                          Mở giao dịch
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </Notice>
+              )}
               {(!isConnected || chainId !== copyrightChain.id) && (
                 <div className="bqs-inset-panel mb-5">
                   <p className="m-0">
@@ -436,7 +446,7 @@ function RegisterWorkForAccount() {
                 description="Khai đúng vai trò; ví gửi giao dịch không tự động được coi là tác giả."
               >
                 <fieldset disabled={busy}>
-                  <WorkDetailsFields value={details} onChange={setDetails} registration />
+                  <WorkDetailsFields value={details} onChange={setDetails} />
                 </fieldset>
               </InfoSection>
               <div className="bqs-form-actions">
@@ -608,13 +618,9 @@ function RegisterWorkForAccount() {
                     className="btn btn-primary"
                     disabled={busy}
                     onClick={() => {
-                      try {
-                        localStorage.removeItem(storageKey);
-                      } catch {
-                        /* The prepared server draft remains available. */
-                      }
-                      saveDraft(editKey);
-                      setResumeDraft(undefined);
+                      if (readDraft(editKey)?.fileHash === result.fileHash) saveDraft(editKey);
+                      setResumeDraft(readDraft(editKey));
+                      setRecoveries(readRegistrationRecoveries(storageKey));
                       setResult(undefined);
                       setSelection(undefined);
                       setStep(1);

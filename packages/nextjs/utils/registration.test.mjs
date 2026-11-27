@@ -1,5 +1,10 @@
 import { registrationSchema } from "./copyrightDetails.ts";
 import { submitRegistration } from "./registrationFlow.ts";
+import {
+  readRegistrationRecoveries,
+  removeRegistrationRecovery,
+  saveRegistrationRecovery,
+} from "./registrationRecovery.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -134,4 +139,53 @@ test("A receipt timeout after broadcast preserves a retryable transaction", asyn
   assert.deepEqual(remembered, ["pending-tx"]);
   assert.equal(result.txHash, "pending-tx");
   assert.equal(result.saved, false);
+});
+
+function memoryStorage() {
+  const entries = new Map();
+  return {
+    get length() {
+      return entries.size;
+    },
+    key: index => [...entries.keys()][index] ?? null,
+    getItem: key => entries.get(key) ?? null,
+    setItem: (key, value) => entries.set(key, value),
+    removeItem: key => entries.delete(key),
+  };
+}
+
+test("Finalizing one registration preserves another tab's pending registration and replacement hash", () => {
+  const storage = memoryStorage();
+  const scope = "wallet-and-contract";
+  const older = { txHash: "0x" + "11".repeat(32), fileHash: payload.fileHash, title: "Tab A" };
+  const newer = { txHash: "0x" + "22".repeat(32), fileHash: "0x" + "33".repeat(32), title: "Tab B" };
+  const a = { ...older, operationId: older.txHash };
+  const b = { ...newer, operationId: newer.txHash };
+  saveRegistrationRecovery(scope, a, storage);
+  saveRegistrationRecovery(scope, b, storage);
+  const replacement = { ...b, txHash: "0x" + "44".repeat(32), confirmed: true };
+  saveRegistrationRecovery(scope, replacement, storage);
+  assert.equal(readRegistrationRecoveries(scope, storage).length, 2);
+  removeRegistrationRecovery(scope, a, storage);
+  removeRegistrationRecovery(scope, b, storage);
+  assert.deepEqual(
+    readRegistrationRecoveries(scope, storage).map(entry => entry.txHash),
+    [replacement.txHash],
+  );
+});
+
+test("Legacy pending entries are recoverable and a stale tab cannot clear a newer legacy transaction", () => {
+  const storage = memoryStorage();
+  const scope = "wallet-and-contract";
+  const legacy = { txHash: "0x" + "55".repeat(32), fileHash: payload.fileHash, title: "Legacy" };
+  storage.setItem(scope, JSON.stringify(legacy));
+  storage.setItem(scope + ":tx:0x" + "66".repeat(32), "{broken");
+  const [entry] = readRegistrationRecoveries(scope, storage);
+  assert.equal(entry.txHash, legacy.txHash);
+  assert.equal(entry.operationId, undefined);
+  assert.deepEqual(readRegistrationRecoveries(scope + "-other", storage), []);
+  const newer = { ...legacy, txHash: "0x" + "77".repeat(32) };
+  storage.setItem(scope, JSON.stringify(newer));
+  removeRegistrationRecovery(scope, entry, storage);
+  assert.equal(readRegistrationRecoveries(scope, storage)[0].txHash, newer.txHash);
 });
