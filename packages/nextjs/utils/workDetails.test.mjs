@@ -11,7 +11,10 @@ const fields = {
   language: "vi",
   creationDate: "2026-01-01",
   publicationDate: "",
-  parties: [{ name: "Nguyễn A", role: "Người sáng tác" }],
+  parties: [
+    { name: "Nguyễn A", role: "Người sáng tác" },
+    { name: "Nguyễn A", role: "Chủ sở hữu quyền" },
+  ],
   basis: "Tự sáng tạo",
   certificate: "",
   experienceUrl: "",
@@ -109,6 +112,24 @@ test("Work dossier PUT responses contain only editable fields", async t => {
   const response = await api.put(fields);
   assert.equal(response.status, 200);
   assert.deepEqual((await response.json()).details, fields);
+});
+
+test("Legacy dossiers remain readable and edits must complete dates and key parties", async t => {
+  const legacy = { ...fields, creationDate: "", parties: [fields.parties[0]] };
+  const api = route(t, { record: { ...legacy, ...identity } });
+  assert.deepEqual((await (await api.get()).json()).details, legacy);
+  for (const invalid of [
+    legacy,
+    { ...fields, parties: [fields.parties[0]] },
+    { ...fields, parties: [fields.parties[1]] },
+    { ...fields, publicationDate: "2999-01-01" },
+    { ...fields, publicationDate: "2025-01-01" },
+  ]) {
+    assert.equal((await api.put(invalid)).status, 400);
+    assert.deepEqual((await (await api.get()).json()).details, legacy);
+  }
+  assert.equal((await api.put(fields)).status, 200);
+  assert.deepEqual((await (await api.get()).json()).details, fields);
 });
 
 test("Work dossier edits still reject metadata injection and other wallets; stale chain records stay hidden", async t => {

@@ -20,15 +20,7 @@ export function emptyWorkDetails(): WorkDetails {
   };
 }
 
-export function WorkDetailsFields({
-  value,
-  onChange,
-  registration = false,
-}: {
-  value: WorkDetails;
-  onChange: (value: WorkDetails) => void;
-  registration?: boolean;
-}) {
+export function WorkDetailsFields({ value, onChange }: { value: WorkDetails; onChange: (value: WorkDetails) => void }) {
   const set = <K extends keyof WorkDetails>(key: K, next: WorkDetails[K]) => onChange({ ...value, [key]: next });
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Ho_Chi_Minh",
@@ -67,11 +59,11 @@ export function WorkDetailsFields({
         </label>
         <label>
           <span className="label">
-            Ngày hoàn thành / sáng tạo {registration && <span className="text-error">*</span>}
+            Ngày hoàn thành / sáng tạo <span className="text-error">*</span>
           </span>
           <input
             type="date"
-            required={registration}
+            required
             max={today}
             className="input input-bordered w-full"
             value={value.creationDate}

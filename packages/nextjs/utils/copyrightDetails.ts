@@ -53,9 +53,10 @@ export const profileSchema = z
   .refine(p => p.kind !== "organization" || p.authority.length > 0, { message: "Cần nhập căn cứ đại diện." });
 
 export const categories = ["Logo / thiết kế", "Tài liệu", "Sáng tác âm nhạc", "Bản ghi", "Khác"] as const;
-export const partyRoles = ["Người sáng tác", "Chủ sở hữu quyền", "Đại diện / quản lý"] as const;
+const requiredPartyRoles = ["Người sáng tác", "Chủ sở hữu quyền"] as const;
+export const partyRoles = [...requiredPartyRoles, "Đại diện / quản lý"] as const;
 
-export const workDetailsSchema = z.strictObject({
+const workDetailsFields = z.strictObject({
   category: z.enum(categories),
   language: z.string().trim().max(40),
   creationDate: optionalDate,
@@ -78,45 +79,43 @@ export const workDetailsSchema = z.strictObject({
     }),
 });
 
+export const workDetailsSchema = workDetailsFields.superRefine((details, ctx) => {
+  const issue = (field: keyof typeof details, message: string) =>
+    ctx.addIssue({ code: "custom", path: [field], message });
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  if (!details.creationDate) issue("creationDate", "Nhập ngày hoàn thành / sáng tạo tác phẩm.");
+  if (details.creationDate > today) issue("creationDate", "Ngày sáng tạo không được ở tương lai.");
+  if (details.publicationDate > today) issue("publicationDate", "Ngày công bố không được ở tương lai.");
+  if (details.publicationDate && details.publicationDate < details.creationDate)
+    issue("publicationDate", "Ngày công bố phải từ ngày hoàn thành tác phẩm trở đi.");
+  if (!requiredPartyRoles.every(role => details.parties.some(party => party.role === role)))
+    issue("parties", "Khai đủ người sáng tác và chủ sở hữu quyền; có thể là cùng một người.");
+});
+
 export type Profile = z.infer<typeof profileSchema>;
 export type WorkDetails = z.infer<typeof workDetailsSchema>;
 
-export const registrationSchema = z
-  .strictObject({
-    fileHash: hashSchema,
-    title: z
-      .string()
-      .trim()
-      .min(1, "Nhập tên tác phẩm.")
-      .refine(value => new TextEncoder().encode(value).length <= 256, "Tên tác phẩm quá dài."),
-    description: z
-      .string()
-      .trim()
-      .min(1, "Nhập tóm tắt nội dung tác phẩm.")
-      .refine(value => new TextEncoder().encode(value).length <= 2048, "Tóm tắt quá dài."),
-    workType: z.union([z.literal(0), z.literal(1), z.literal(2)]),
-    details: workDetailsSchema,
-    rightsConfirmed: z.literal(true, { error: "Cần xác nhận thẩm quyền và trách nhiệm kê khai." }),
-    publicConfirmed: z.literal(true, { error: "Cần xác nhận phạm vi công khai thông tin." }),
-  })
-  .superRefine(({ details }, ctx) => {
-    const issue = (field: string, message: string) =>
-      ctx.addIssue({ code: "custom", path: ["details", field], message });
-    if (!details.creationDate) issue("creationDate", "Nhập ngày hoàn thành / sáng tạo tác phẩm.");
-    const today = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Ho_Chi_Minh",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
-    if (details.creationDate > today || details.publicationDate > today)
-      issue("creationDate", "Ngày sáng tạo / công bố không được ở tương lai.");
-    if (details.publicationDate && details.publicationDate < details.creationDate)
-      issue("publicationDate", "Ngày công bố phải từ ngày hoàn thành tác phẩm trở đi.");
-    for (const role of ["Người sáng tác", "Chủ sở hữu quyền"]) {
-      if (!details.parties.some(party => party.role === role))
-        issue("parties", "Khai đủ người sáng tác và chủ sở hữu quyền; có thể là cùng một người.");
-    }
-  });
+export const registrationSchema = z.strictObject({
+  fileHash: hashSchema,
+  title: z
+    .string()
+    .trim()
+    .min(1, "Nhập tên tác phẩm.")
+    .refine(value => new TextEncoder().encode(value).length <= 256, "Tên tác phẩm quá dài."),
+  description: z
+    .string()
+    .trim()
+    .min(1, "Nhập tóm tắt nội dung tác phẩm.")
+    .refine(value => new TextEncoder().encode(value).length <= 2048, "Tóm tắt quá dài."),
+  workType: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  details: workDetailsSchema,
+  rightsConfirmed: z.literal(true, { error: "Cần xác nhận thẩm quyền và trách nhiệm kê khai." }),
+  publicConfirmed: z.literal(true, { error: "Cần xác nhận phạm vi công khai thông tin." }),
+});
 
 export type Registration = z.infer<typeof registrationSchema>;

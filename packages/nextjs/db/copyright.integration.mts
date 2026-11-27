@@ -174,6 +174,7 @@ try {
     publicationDate: "",
     parties: [
       { name: "Tác giả A", role: "Người sáng tác" },
+      { name: "Chủ quyền A", role: "Chủ sở hữu quyền" },
       { name: "Đại diện B", role: "Đại diện / quản lý" },
     ],
     basis: "Tự sáng tạo",
@@ -187,6 +188,11 @@ try {
     body: { ...details, experienceUrl: "https://youtube.com.example.invalid/watch?v=dQw4w9WgXcQ" },
   });
   await api(workPath, 200, { ...a, method: "PUT", body: details });
+  await api(workPath, 400, {
+    ...a,
+    method: "PUT",
+    body: { ...details, parties: [details.parties[0]] },
+  });
   assert.equal((await api(workPath, 200)).data.details.experienceUrl, "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
   const historyPath = workPath + "&history=1";
   await api(historyPath, 401);
