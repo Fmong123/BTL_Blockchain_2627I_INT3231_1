@@ -28,6 +28,11 @@ const blockchainProblems = {
   "missing-contract": "Chưa có WorkRegistry trên mạng đã cấu hình.",
   "rpc-unavailable": "Không kết nối được RPC blockchain.",
 };
+const profileProblems = {
+  "migration-required": "PostgreSQL cần cập nhật schema. Chạy yarn db:migrate rồi kiểm tra lại.",
+  unconfigured: "Chưa cấu hình PostgreSQL.",
+  unavailable: "Chưa xác nhận được kết nối PostgreSQL.",
+};
 
 export function WorkCatalog({ mine = false }: { mine?: boolean }) {
   const { address } = useAccount();
@@ -43,7 +48,7 @@ function Catalog({ mine }: { mine: boolean }) {
     queryFn: () =>
       copyrightApi<{
         blockchain: "ready" | keyof typeof blockchainProblems;
-        profiles: "ready" | "unavailable" | "unconfigured";
+        profiles: "ready" | keyof typeof profileProblems;
       }>("health"),
     refetchInterval: 15000,
     retry: false,
@@ -51,6 +56,7 @@ function Catalog({ mine }: { mine: boolean }) {
   const blockchain = health.data?.blockchain;
   const chainProblem = blockchain && blockchain !== "ready" ? blockchainProblems[blockchain] : undefined;
   const profiles = health.data?.profiles;
+  const profileProblem = profiles && profiles !== "ready" ? profileProblems[profiles] : undefined;
   const licenses = useLicenseHistory({});
   const clock = useRegistryClock();
   const [query, setQuery] = useState("");
@@ -75,11 +81,9 @@ function Catalog({ mine }: { mine: boolean }) {
           Chuyển ví sang {targetNetwork.name} (Chain ID {targetNetwork.id}) để thao tác.
         </Notice>
       )}
-      {(health.error || (profiles && profiles !== "ready")) && (
+      {(health.error || profileProblem) && (
         <Notice className="mb-4" tone="warning" title="Dịch vụ hồ sơ chưa sẵn sàng">
-          <span>
-            {profiles === "unconfigured" ? "Chưa cấu hình PostgreSQL." : "Chưa xác nhận được kết nối PostgreSQL."}
-          </span>
+          <span>{profileProblem ?? "Chưa xác nhận được kết nối PostgreSQL."}</span>
           <button type="button" className="btn btn-outline btn-sm" onClick={() => void health.refetch()}>
             Kiểm tra lại
           </button>

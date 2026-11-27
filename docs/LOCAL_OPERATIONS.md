@@ -3,7 +3,7 @@
 ## Kiểm tra dịch vụ
 
 1. Mở trang Tác phẩm ở URL thực tế Next.js đang phục vụ. Ví kết nối phải chọn chain được cấu hình. Chỉ khi đọc được blockchain, danh sách mới xác nhận có hay chưa có tác phẩm.
-2. Mở đường dẫn /api/copyright/health ở cùng URL. blockchain báo ready, wrong-chain, missing-contract hoặc rpc-unavailable. profiles báo ready, unconfigured hoặc unavailable. API chỉ trả trạng thái, không trả URL kết nối hay bí mật.
+2. Mở đường dẫn /api/copyright/health ở cùng URL. blockchain báo ready, wrong-chain, missing-contract hoặc rpc-unavailable. profiles báo ready, migration-required, unconfigured hoặc unavailable. API chỉ trả trạng thái, không trả URL kết nối hay bí mật.
 3. Nếu DB lỗi, kiểm tra dịch vụ PostgreSQL và chạy yarn.cmd db:migrate từ thư mục gốc sau khi sao lưu. Nếu RPC lỗi, kiểm tra đúng cổng và node. Nếu thiếu contract, chỉ deploy khi đã xác nhận đó là node mới dành riêng.
 4. Khi xem log, đối chiếu thời điểm lỗi giữa Next.js, PostgreSQL và RPC. Không chia sẻ nội dung .env.local, mật khẩu hay khóa ví. Kiểm tra dung lượng trống của ổ đĩa chứa PostgreSQL và ổ đĩa chứa bản backup bằng Get-Volume trên Windows.
 
@@ -24,5 +24,6 @@ Migration 0003 thêm bảng lịch sử và trigger ghi phiên bản trong cùng
 ## Phục hồi thao tác trên web
 
 - Bản nháp đang nhập lưu theo tab, ví, mạng và contract. Khi tải lại trang, chọn lại tệp có đúng SHA-256 rồi tiếp tục. Đối chiếu lại hồ sơ và hai ô xác nhận trước khi ký.
+- Mỗi giao dịch đã gửi có mục khôi phục riêng. Nếu có nhiều giao dịch chờ hoàn tất, chọn mục theo tên và mã giao dịch. Khi chỉnh sửa hồ sơ cũ, hãy bổ sung ngày sáng tạo, tác giả hoặc chủ sở hữu còn thiếu trước khi lưu.
 - Khi thẻ giấy phép báo đã cấp và chờ lưu điều khoản, mở thẻ bằng ví cấp rồi chọn Lưu điều khoản của lần cấp này. Nút chỉ lưu lại dữ liệu theo giao dịch đã có.
 - PDF có thể dùng để tra cứu. Ví cấp và ví nhận có thể đăng nhập để tải JSON chứa danh tính lần cấp, nội dung, hash, thông điệp đã ký và chữ ký nếu đã được chấp thuận. Có thể tính lại Keccak-256 của nội dung UTF-8 và xác minh chữ ký trên thông điệp nguyên văn với ví nhận.

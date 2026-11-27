@@ -17,9 +17,22 @@ async function checkBlockchain() {
 async function checkDatabase() {
   if (!process.env.DATABASE_URL) return "unconfigured";
   try {
-    await database().execute(sql`select 1 from siwe_challenges limit 1`);
+    await database().execute(sql`
+      select challenges.nonce, profiles.wallet, drafts.preparation_id,
+             works.block_hash, terms.signed_message, revisions.details
+      from siwe_challenges as challenges
+      cross join wallet_profiles as profiles
+      cross join registration_drafts as drafts
+      cross join work_details as works
+      cross join license_terms as terms
+      cross join work_revisions as revisions
+      limit 0
+    `);
     return "ready";
-  } catch {
+  } catch (error) {
+    const cause = error instanceof Error ? (error.cause ?? error) : undefined;
+    if (cause && typeof cause === "object" && "code" in cause && (cause.code === "42P01" || cause.code === "42703"))
+      return "migration-required";
     return "unavailable";
   }
 }
